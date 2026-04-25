@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         
         let linksHtml = `<div style="display:flex; gap:10px; justify-content:center;">`;
         if (profile.resume_url) linksHtml += `<a href="${esc(profile.resume_url)}" target="_blank" class="button primary"><i class="ph ph-file-pdf"></i> View Resume</a>`;
-        if (profile.github_url) linksHtml += `<a href="${esc(profile.github_url)}" target="_blank" class="button outline"><i class="ph ph-link"></i> External Link</a>`;
+        if (profile.github_url) linksHtml += `<a href="${esc(profile.github_url)}" target="_blank" class="button outline"><i class="ph ph-link"></i> Profile Link</a>`;
         linksHtml += `</div>`;
 
         document.getElementById("portHeader").innerHTML = `
