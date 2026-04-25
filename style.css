@@ -1277,3 +1277,124 @@ textarea { resize: vertical; min-height: 100px; }
 .settings-section {
     scroll-margin-top: 24px; /* Ensures the browser doesn't scroll the header under the top edge */
 }
+
+/* ══════════════════════════════════════════════════════════
+   GLOBAL TRANSITIONS & HOVER EFFECTS
+   ══════════════════════════════════════════════════════════ */
+.button, .nav-link, .item-card, .fab-main, .fab-option, 
+.filter-tab, .cat-pill, .type-choice, .settings-nav-link, 
+input, textarea, select, .icon-button, .doc-card, #umaklogo {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    filter: brightness(1.15);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.item-card:hover, .doc-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+}
+
+input:focus, textarea:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(255, 204, 0, 0.15);
+    outline: none;
+}
+
+.nav-link:hover {
+    padding-left: 16px; /* Smoothly nudges the text right on hover */
+    background: var(--bg-glass-hover);
+}
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE RESPONSIVENESS OVERRIDES
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    /* 1. Profile Page Dual-Layout Fix */
+    .settings-layout {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .settings-sidebar {
+        width: 100%;
+        position: static;
+        display: none; /* Hidden by default on mobile */
+        background: var(--bg-raised);
+        padding: 16px;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border);
+        margin-bottom: 24px;
+    }
+    
+    .settings-sidebar.open {
+        display: block;
+        animation: popIn 0.3s ease;
+    }
+
+    .settings-mobile-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 14px 18px;
+        background: var(--bg-raised);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        font-family: var(--font-display);
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        margin-bottom: 8px;
+    }
+
+    /* 2. Responsive Form Grids */
+    .grid-2-col {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .profile-avatar-wrapper {
+        flex-direction: column;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* 3. Global App Adjustments */
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .search-field {
+        width: 100%;
+    }
+    
+    .filter-tabs {
+        width: 100%;
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 4px;
+    }
+}
+
+@media (min-width: 769px) {
+    .settings-mobile-toggle {
+        display: none; /* Hide toggle button on desktop */
+    }
+    .grid-2-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+    .profile-avatar-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 32px;
+    }
+}

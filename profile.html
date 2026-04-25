@@ -12,6 +12,18 @@
 <div class="app-shell">
     <div class="layout">
         
+        <div class="mobile-header">
+            <div class="brand-panel" style="margin-bottom:0;padding:0;">
+                <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
+                <div>
+                    <p class="brand-title">UMak Hub</p>
+                    <span class="brand-subtitle">Account Settings</span>
+                </div>
+            </div>
+            <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
+                <i class="ph ph-list" id="menuIcon"></i>
+            </button>
+        </div>
         <aside class="sidebar" id="appSidebar">
             <div class="brand-panel desktop-brand">
                 <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
@@ -36,8 +48,14 @@
             </header>
 
             <div class="settings-layout">
-                <aside class="settings-sidebar">
-                    <p class="settings-nav-label">User Settings</p>
+                
+                <button id="settingsMobileToggle" class="settings-mobile-toggle">
+                    <span><i class="ph ph-list-dashes" style="margin-right: 8px; color: var(--accent);"></i> User Settings</span>
+                    <i class="ph ph-caret-down" id="settingsToggleIcon"></i>
+                </button>
+
+                <aside class="settings-sidebar" id="settingsSidebar">
+                    <p class="settings-nav-label" style="display: none /* hidden on mobile, handled by desktop css */">User Settings</p>
                     <a href="#account" class="settings-nav-link active">My Account</a>
                     <a href="#portfolio" class="settings-nav-link">Academic Portfolio</a>
                     <a href="#portfolio-docs" class="settings-nav-link">Portfolio Documents</a>
@@ -52,8 +70,8 @@
                             <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">My Account</h2>
                         </div>
                         
-                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
-                            <div class="profile-avatar" style="width: 80px; height: 80px; font-size: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow); position: relative; overflow: hidden;">
+                        <div class="profile-avatar-wrapper">
+                            <div class="profile-avatar" style="width: 80px; height: 80px; font-size: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow); position: relative; overflow: hidden; margin: 0 auto;">
                                 <span id="avatarInitials">U</span>
                                 <img id="avatarImage" src="" alt="Profile Picture" style="display: none; width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0;">
                             </div>
@@ -64,25 +82,20 @@
                         </div>
 
                         <div style="display: grid; gap: 20px;">
-                            <label style="margin: 0;">
-                                Profile Picture
+                            <label style="margin: 0;">Profile Picture
                                 <input type="file" id="editAvatarFile" accept="image/png, image/jpeg, image/webp" style="background: var(--bg-surface); padding: 8px;">
                             </label>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                                <label style="margin: 0;">
-                                    Display Name
+                            <div class="grid-2-col">
+                                <label style="margin: 0;">Display Name
                                     <input type="text" id="editName" required placeholder="e.g., Juan Dela Cruz">
                                 </label>
-
-                                <label style="margin: 0;">
-                                    Email Address
+                                <label style="margin: 0;">Email Address
                                     <input type="email" id="editEmail" required placeholder="you@umak.edu.ph">
                                 </label>
                             </div>
 
-                            <label style="margin: 0;">
-                                About Me (Bio)
+                            <label style="margin: 0;">About Me (Bio)
                                 <textarea id="editBio" rows="3" placeholder="Tell the campus a little about yourself, your skills, or your projects..."></textarea>
                             </label>
                         </div>
@@ -99,7 +112,7 @@
                         </div>
                         
                         <div style="display: grid; gap: 20px;">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                            <div class="grid-2-col">
                                 <label style="margin: 0;">Course / Strand
                                     <input type="text" id="editCourse" placeholder="e.g., Technical Professional - Computer Programming">
                                 </label>
@@ -149,9 +162,8 @@
                         <div style="background: var(--bg-surface); padding: 20px; border-radius: var(--radius-md); border: 1px dashed var(--border);">
                             <h4 style="margin-top: 0; margin-bottom: 16px;">Add New Document</h4>
                             
-                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
-                                <label style="margin: 0;">
-                                    Category
+                            <div class="grid-2-col" style="margin-bottom: 16px;">
+                                <label style="margin: 0;">Category
                                     <select id="newDocType">
                                         <option value="Certificate">Certificate</option>
                                         <option value="Journal">Journal</option>
@@ -159,18 +171,16 @@
                                         <option value="Diary">Diary</option>
                                     </select>
                                 </label>
-                                <label style="margin: 0;">
-                                    Document Title
-                                    <input type="text" id="newDocTitle" placeholder="e.g., NCII CSS Certificate or Immersion Diary Week 1">
+                                <label style="margin: 0;">Document Title
+                                    <input type="text" id="newDocTitle" placeholder="e.g., NCII CSS Certificate">
                                 </label>
                             </div>
 
-                            <label style="margin: 0; margin-bottom: 16px; display: block;">
-                                File Upload
+                            <label style="margin: 0; margin-bottom: 16px; display: block;">File Upload
                                 <input type="file" id="newDocFile" accept=".pdf, image/png, image/jpeg, image/webp" style="background: var(--bg-base); padding: 8px;">
                             </label>
                             
-                            <button type="button" id="uploadDocBtn" class="button outline"><i class="ph ph-upload-simple"></i> Upload to Portfolio</button>
+                            <button type="button" id="uploadDocBtn" class="button outline fullwidth"><i class="ph ph-upload-simple"></i> Upload to Portfolio</button>
                         </div>
                     </div>
 
@@ -180,24 +190,21 @@
                         </div>
                         
                         <div style="display: grid; gap: 16px;">
-                            <label style="margin: 0;">
-                                Current Password
+                            <label style="margin: 0;">Current Password
                                 <div class="pw-input-wrap">
                                     <input type="password" id="currentPassword" required placeholder="Enter current password">
                                     <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('currentPassword', this)"><i class="ph ph-eye-slash"></i></button>
                                 </div>
                             </label>
 
-                            <label style="margin: 0;">
-                                New Password
+                            <label style="margin: 0;">New Password
                                 <div class="pw-input-wrap">
                                     <input type="password" id="newPassword" required placeholder="Min. 8 chars with A, 1, &!">
                                     <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('newPassword', this)"><i class="ph ph-eye-slash"></i></button>
                                 </div>
                             </label>
 
-                            <label style="margin: 0;">
-                                Repeat New Password
+                            <label style="margin: 0;">Repeat New Password
                                 <div class="pw-input-wrap">
                                     <input type="password" id="confirmPassword" required placeholder="Confirm your new password">
                                     <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('confirmPassword', this)"><i class="ph ph-eye-slash"></i></button>
@@ -214,7 +221,7 @@
                         <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
                             <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">App Preferences</h2>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
                             <div>
                                 <h4 style="margin: 0 0 4px 0; font-family: var(--font-display);">Theme Appearance</h4>
                                 <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Toggle between light and dark mode.</p>
@@ -237,6 +244,37 @@
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
+
+    // === NEW: Mobile Settings Sidebar Toggle ===
+    const mobileToggleBtn = document.getElementById('settingsMobileToggle');
+    const settingsSidebar = document.getElementById('settingsSidebar');
+    const toggleIcon = document.getElementById('settingsToggleIcon');
+
+    if (mobileToggleBtn) {
+        mobileToggleBtn.addEventListener('click', () => {
+            const isOpen = settingsSidebar.classList.contains('open');
+            settingsSidebar.classList.toggle('open');
+            
+            // Flip the caret arrow
+            if (isOpen) {
+                toggleIcon.classList.replace('ph-caret-up', 'ph-caret-down');
+            } else {
+                toggleIcon.classList.replace('ph-caret-down', 'ph-caret-up');
+            }
+        });
+    }
+
+    // Auto-close the sidebar on mobile when a user clicks a link inside it
+    document.querySelectorAll('.settings-nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                settingsSidebar.classList.remove('open');
+                toggleIcon.classList.replace('ph-caret-up', 'ph-caret-down');
+            }
+        });
+    });
+
+
     document.querySelectorAll('.settings-nav-link').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
