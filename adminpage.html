@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — UMak Hub</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="page page-admin" data-page="admin">
+
+<div class="app-shell">
+<div class="layout">
+
+  <div class="mobile-header">
+    <div class="brand-panel" style="margin-bottom:0;padding:0;">
+      <div style="font-size: 24px; color: var(--accent);">🎓</div>
+      <div>
+          <p class="brand-title">UMak Hub</p>
+          <span class="brand-subtitle">Admin Portal</span>
+      </div>
+    </div>
+    <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
+      <i class="ph ph-list" id="menuIcon"></i>
+    </button>
+  </div>
+
+  <aside class="sidebar" id="appSidebar">
+    <div class="brand-panel desktop-brand">
+        <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
+        <div>
+            <p class="brand-title">UMak Hub</p>
+            <span class="brand-subtitle">Admin Portal</span>
+        </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="nav-link active" data-section="dashboard" href="#">
+        <span class="nav-link-icon"><i class="ph ph-squares-four"></i></span> Dashboard
+      </a>
+      <a class="nav-link" data-section="manage-items" href="#">
+        <span class="nav-link-icon"><i class="ph ph-folder-open"></i></span> Manage Posts
+      </a>
+      <a class="nav-link" data-section="users" href="#">
+        <span class="nav-link-icon"><i class="ph ph-users"></i></span> Users
+      </a>
+      <div class="nav-divider"></div>
+      <a class="nav-link" data-section="activity" href="#">
+        <span class="nav-link-icon"><i class="ph ph-list-dashes"></i></span> Activity Log
+      </a>
+      <a class="nav-link" data-section="conversations" href="#">
+        <span class="nav-link-icon"><i class="ph ph-chat-circle-text"></i></span> Chat Logs
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="button secondary fullwidth theme-toggle-btn" style="margin-bottom: 12px;">
+            <i class="ph ph-moon theme-icon"></i> <span style="margin-left:5px;">Toggle Theme</span>
+        </button>
+      <div class="profile-card">
+        <div class="profile-info">
+          <div class="profile-avatar" id="adminAvatarText" style="background: #e11d48; color: white;">SA</div>
+          <div>
+            <p class="profile-name" id="adminNameText">System Admin</p>
+            <p class="profile-role">Administrator</p>
+          </div>
+        </div>
+        <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
+          <i class="ph ph-sign-out"></i>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <div class="content-area">
+
+    <div id="userSelectModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
+      <div class="modal-panel" style="max-width:400px;">
+        <div class="modal-header">
+          <div><h2>Select User</h2><p>Choose a member to message.</p></div>
+          <button onclick="closeModal(document.getElementById('userSelectModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+        </div>
+        <div class="search-field" style="margin-bottom:15px;">
+          <input type="search" id="userChatSearch" placeholder="Search by name or email...">
+        </div>
+        <div id="userChatList" class="list-grid" style="max-height:300px;overflow-y:auto;"></div>
+      </div>
+    </div>
+
+    <div id="requestModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel">
+        <div class="modal-header">
+          <div><h2>Action Center</h2><p>Review pending posts and chat requests.</p></div>
+          <button id="closeModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
+        </div>
+        <section><h3>Pending Posts</h3><div id="modalPostRequests" class="list-grid"></div></section>
+        <section><h3>Chat Requests</h3><div id="modalChatRequests" class="list-grid"></div></section>
+      </div>
+    </div>
+
+    <div id="editModal" class="modal hidden" aria-hidden="true">
+      <div class="modal-backdrop"></div>
+      <div class="modal-panel" style="max-width:540px;">
+        <div class="modal-header">
+          <div><h2>Edit Post</h2><p>Update the post details below.</p></div>
+          <button id="closeEditModal" class="button secondary sm"><i class="ph ph-x"></i> Close</button>
+        </div>
+        <form id="editItemForm">
+          <input type="hidden" id="editItemId">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <label style="margin-bottom:0;">Post Title<input type="text" id="editItemName" required></label>
+            <label style="margin-bottom:0;">Category
+              <select id="editItemCategory">
+                <option value="Showcase">Showcase</option>
+                <option value="Question">Question</option>
+                <option value="General">General</option>
+              </select>
+            </label>
+          </div>
+          <label style="margin-top:16px;">Content<textarea id="editItemDesc" rows="4"></textarea></label>
+          
+          <input type="hidden" id="editItemLocation" value="">
+          <input type="hidden" id="editItemContact" value="">
+          
+          <div class="form-actions" style="margin-top:16px;">
+            <button type="submit" class="button primary" style="flex:1;"><i class="ph ph-floppy-disk"></i> Save Changes</button>
+            <button type="button" id="cancelEditModal" class="button secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="section-conversations" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Logs</p>
+          <h1>Chat Logs</h1>
+        </div>
+      </header>
+      <section class="panel">
+        <div id="resolutionsList" class="list-grid"></div>
+      </section>
+    </div>
+
+    <div id="section-dashboard" class="admin-section">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · UMak Hub</p>
+          <h1>Dashboard</h1>
+        </div>
+        <div class="header-actions">
+        <div class="search-field"><input type="search" id="adminSearch" placeholder="Search posts, requests…"></div>
+        
+        <div class="notif-bell-wrap" style="position: relative;">
+            <button id="notificationBell" class="icon-button" aria-label="View member requests">
+            <i class="ph ph-bell"></i>
+            <span id="notificationCount" class="badge">0</span>
+            </button>
+            </div>
+
+        </div>
+      </header>
+      <section class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-browser"></i></span>
+          <p class="stat-label">Total Posts</p>
+          <p id="statTotal" class="stat-value">0</p>
+          <p class="stat-meta">Live on feed</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-hourglass-high"></i></span>
+          <p class="stat-label">Pending Posts</p>
+          <p id="statPendingReqs" class="stat-value">0</p>
+          <p class="stat-meta">Awaiting review</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-users"></i></span>
+          <p class="stat-label">Members</p>
+          <p id="statMembers" class="stat-value">0</p>
+          <p class="stat-meta">Registered users</p>
+        </article>
+        <article class="stat-card">
+          <span class="stat-icon"><i class="ph ph-chat-circle-dots"></i></span>
+          <p class="stat-label">Chat Requests</p>
+          <p id="statChats" class="stat-value">0</p>
+          <p class="stat-meta">Members needing help</p>
+        </article>
+      </section>
+      <main>
+        <section class="panel">
+          <div class="panel-header">
+            <div>
+              <h2>Live Feed</h2>
+              <p>Posts currently visible to all members.</p>
+            </div>
+          </div>
+          <div id="approvedItems" class="list-grid"></div>
+        </section>
+      </main>
+    </div>
+
+    <div id="section-manage-items" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Feed</p>
+          <h1>Content Moderation</h1>
+        </div>
+        <div class="header-actions" style="flex-wrap:wrap;gap:10px;">
+          <div class="search-field"><input type="search" id="itemSearch" placeholder="Search posts…"></div>
+          <div class="filter-tabs" id="itemFilter">
+            <button class="filter-tab active" data-filter="all">All</button>
+            <button class="filter-tab" data-filter="pending" style="color: var(--amber);">
+                <i class="ph ph-hourglass"></i> Pending
+            </button>
+            <button class="filter-tab" data-filter="Showcase">Showcase</button>
+            <button class="filter-tab" data-filter="Question">Question</button>
+          </div>
+        </div>
+      </header>
+      <section class="panel">
+        <div id="allItemsList" class="list-grid"></div>
+      </section>
+    </div>
+
+    <div id="section-users" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Members</p>
+          <h1>Users</h1>
+        </div>
+        <div class="header-actions">
+          <div class="search-field"><input type="search" id="userSearch" placeholder="Search users…"></div>
+        </div>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Registered Members</h2>
+            <p id="usersCountLabel">Loading…</p>
+          </div>
+        </div>
+        <div id="usersList" class="list-grid"></div>
+      </section>
+    </div>
+
+    <div id="section-activity" class="admin-section hidden">
+      <header class="page-header">
+        <div>
+          <p class="section-label">Admin · Logs</p>
+          <h1>Activity Log</h1>
+        </div>
+        <div class="header-actions">
+          <button id="clearActivityBtn" class="button danger sm">
+            <i class="ph ph-trash"></i> Clear Log
+          </button>
+        </div>
+      </header>
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>Recent Events</h2><p id="activityCountLabel">Loading…</p></div>
+        </div>
+        <div id="activityList"></div>
+      </section>
+    </div>
+
+  </div></div></div>
+  <div class="fab-container">
+      <div class="fab-options" id="fabOptions">
+          <a class="fab-option" href="adminrequestform.html" style="background: var(--accent); color: var(--iac-navy);">
+              <div class="fab-option-dot" style="background: var(--iac-navy);"></div> Admin Post
+          </a>
+          <a class="fab-option" href="#" onclick="document.getElementById('userSelectModal').classList.remove('hidden'); closeFab();" style="background: #e11d48; color: white;">
+              <div class="fab-option-dot" style="background: white;"></div> Chat with User
+          </a>
+      </div>
+      <button class="fab-main" id="fabMain" onclick="toggleFab()">
+          <i class="ph ph-plus" style="font-size: 24px;"></i>
+      </button>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

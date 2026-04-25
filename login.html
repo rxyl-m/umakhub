@@ -1,0 +1,292 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — iAcademy Lost & Found</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body class="page page-login" data-page="login">
+
+<!-- Dark / Light Toggle -->
+<button class="floating-theme-btn theme-toggle-btn" title="Toggle dark/light mode" aria-label="Toggle theme">
+  <i class="ph ph-moon theme-icon"></i>
+</button>
+
+<div class="app-shell auth-shell">
+  <div class="auth-wrapper">
+
+    <!-- Logo -->
+    <header>
+      <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:16px;">
+        <svg width="16" height="16" viewBox="0 0 80 80" fill="none" style="margin-right:7px;">
+          <path d="M40 4L72 22V58L40 76L8 58V22Z" fill="rgba(77,130,255,0.15)" stroke="rgba(77,130,255,0.5)" stroke-width="1.5"/>
+          <path d="M40 12L64 26V54L40 68L16 54V26Z" fill="white" opacity="0.9"/>
+          <rect x="35" y="22" width="10" height="7" rx="1.5" fill="#05063a"/>
+          <path d="M40 34L40 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round"/>
+          <path d="M29 54L40 34L51 54" stroke="#05063a" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M34 47L46 47" stroke="#05063a" stroke-width="3.5" stroke-linecap="round"/>
+        </svg>
+        iAcademy · Lost &amp; Found
+      </div>
+      <h1 id="authHeading">Welcome back</h1>
+      <p id="authSubheading">Sign in to access the campus Lost &amp; Found system.</p>
+    </header>
+
+    <!-- Tabs -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="signin">Sign In</button>
+      <button class="auth-tab" data-tab="signup">Sign Up</button>
+    </div>
+
+    <!-- Sign In Form -->
+    <form id="loginForm" class="form-card auth-form" data-form="signin">
+      <label>
+        Email address
+        <input type="email" id="email" required placeholder="you@umak.edu.ph" autocomplete="email">
+      </label>
+      <label>
+        Password
+        <div class="pw-input-wrap">
+          <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('password', this)">
+            <i class="ph ph-eye-slash"></i>
+          </button>
+        </div>
+      </label>
+      <div class="form-actions">
+        <button type="submit" class="button primary" style="flex:1;">
+          <i class="ph ph-sign-in"></i> Sign In
+        </button>
+        <a class="button secondary" href="index.html">Back</a>
+      </div>
+      <p id="loginError" aria-live="polite"></p>
+    </form>
+
+    <!-- Sign Up Form -->
+    <form id="signupForm" class="form-card auth-form hidden" data-form="signup">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <label style="margin-bottom:0;">
+          First name
+          <input type="text" id="signupFirstName" required placeholder="Jane">
+        </label>
+        <label style="margin-bottom:0;">
+          Last name
+          <input type="text" id="signupLastName" required placeholder="Dela Cruz">
+        </label>
+      </div>
+      <label style="margin-top:16px;">
+        Email address
+        <input type="email" id="signupEmail" required placeholder="you@iacademy.edu.ph" autocomplete="email">
+      </label>
+      <label>
+        Password
+        <div class="pw-input-wrap">
+          <input type="password" id="signupPassword" required placeholder="Min. 8 chars with A, 1, &amp;!" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('signupPassword', this)">
+            <i class="ph ph-eye-slash"></i>
+          </button>
+        </div>
+        <!-- Strength Meter -->
+        <div class="pw-strength-wrap">
+          <div class="pw-strength-bar">
+            <div class="pw-strength-seg" id="seg1"></div>
+            <div class="pw-strength-seg" id="seg2"></div>
+            <div class="pw-strength-seg" id="seg3"></div>
+            <div class="pw-strength-seg" id="seg4"></div>
+          </div>
+          <div class="pw-strength-label" id="pwStrengthLabel"></div>
+          <div class="pw-rules" id="pwRules">
+            <div class="pw-rule" id="rule-len">At least 8 characters</div>
+            <div class="pw-rule" id="rule-upper">One uppercase letter (A–Z)</div>
+            <div class="pw-rule" id="rule-num">One number (0–9)</div>
+            <div class="pw-rule" id="rule-special">One special character (!@#$%^&amp;*)</div>
+          </div>
+        </div>
+      </label>
+      <label>
+        Confirm password
+        <div class="pw-input-wrap">
+          <input type="password" id="signupConfirm" required placeholder="Repeat your password" autocomplete="new-password">
+          <button type="button" class="pw-toggle-btn" aria-label="Toggle confirm password visibility" onclick="togglePwVisibility('signupConfirm', this)">
+            <i class="ph ph-eye-slash"></i>
+          </button>
+        </div>
+      </label>
+
+      <!-- Terms & Conditions -->
+      <label class="terms-check" id="termsLabel">
+        <input type="checkbox" id="termsCheck">
+        <span>
+          I have read and agree to the
+          <a href="#" id="termsLink">Terms &amp; Conditions</a>
+          and
+          <a href="#" id="privacyLink">Privacy Policy</a>.
+        </span>
+      </label>
+
+      <div class="form-actions">
+        <button type="submit" class="button primary" style="flex:1;" id="signupBtn">
+          <i class="ph ph-user-plus"></i> Create Account
+        </button>
+        <a class="button secondary" href="index.html">Back</a>
+      </div>
+      <p id="signupError" aria-live="polite"></p>
+      <p id="signupSuccess" aria-live="polite"></p>
+    </form>
+
+  </div>
+</div>
+
+<!-- Terms & Conditions Modal -->
+<div id="termsModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" onclick="closeModal(document.getElementById('termsModal'))"></div>
+  <div class="modal-panel" style="max-width:560px;">
+    <div class="modal-header">
+      <div><h2>Terms &amp; Conditions</h2><p>iAcademy Lost &amp; Found System</p></div>
+      <button onclick="closeModal(document.getElementById('termsModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="terms-modal-body">
+      <h3>1. Acceptance of Terms</h3>
+      <p>By creating an account and using the iAcademy Lost &amp; Found System ("the System"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the System.</p>
+
+      <h3>2. Eligibility</h3>
+      <p>The System is intended exclusively for current iAcademy students, faculty, and staff. Use of a false identity or someone else's credentials is strictly prohibited and may result in disciplinary action.</p>
+
+      <h3>3. User Responsibilities</h3>
+      <ul>
+        <li>You must provide accurate information when registering and reporting items.</li>
+        <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
+        <li>You agree not to submit false, misleading, or fraudulent reports.</li>
+        <li>You must not claim items that do not belong to you.</li>
+      </ul>
+
+      <h3>4. Admin Approval Workflow</h3>
+      <p>All item posts submitted by members are subject to review and approval by an iAcademy administrator before they appear publicly on the board. Admins reserve the right to reject any submission without explanation.</p>
+
+      <h3>5. Privacy</h3>
+      <p>Contact information provided in item reports will be visible to other users for the purpose of facilitating item returns. The System may log actions including logins, submissions, and approvals for administrative purposes.</p>
+
+      <h3>6. Prohibited Conduct</h3>
+      <ul>
+        <li>Posting items that are not genuinely lost or found.</li>
+        <li>Using the System to harass, spam, or defraud other users.</li>
+        <li>Attempting to gain unauthorized admin access.</li>
+      </ul>
+
+      <h3>7. Disclaimer</h3>
+      <p>iAcademy does not guarantee the recovery of lost items and is not liable for any loss, damage, or dispute arising from the use of the System. The System is provided "as is" for campus convenience.</p>
+
+      <h3>8. Amendments</h3>
+      <p>These terms may be updated at any time. Continued use of the System constitutes acceptance of any changes.</p>
+    </div>
+    <div style="margin-top:20px;text-align:right;">
+      <button class="button primary" onclick="acceptTerms()">
+        <i class="ph ph-check"></i> I Accept
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand">
+        <img src="lnflogo.png" alt="iacademy logo" class="brand-logo">
+        <span class="footer-name">University of Makati Lost &amp; Found</span>
+      </div>
+      <div class="footer-tagline">Reuniting the University of Makati community with their belongings.</div>
+    </div>
+    <div class="footer-links">
+      <a href="#" onclick="openTerms()">Terms &amp; Conditions</a>
+      <a href="#">Privacy Policy</a>
+      <a href="#">Contact Admin</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© 2026 University of Makati. All rights reserved. Computing · Business · Design</div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+<script>
+
+  /* ── Terms Modal ── */
+  function openTerms() {
+    const m = document.getElementById('termsModal');
+    m.classList.remove('hidden'); m.setAttribute('aria-hidden','false');
+  }
+  function acceptTerms() {
+    document.getElementById('termsCheck').checked = true;
+    closeModal(document.getElementById('termsModal'));
+  }
+  document.getElementById('termsLink').onclick   = e => { e.preventDefault(); openTerms(); };
+  document.getElementById('privacyLink').onclick  = e => { e.preventDefault(); openTerms(); };
+
+  /* ── Password Strength ── */
+  const pwInput = document.getElementById('signupPassword');
+  const segs    = [document.getElementById('seg1'), document.getElementById('seg2'), document.getElementById('seg3'), document.getElementById('seg4')];
+  const lbl     = document.getElementById('pwStrengthLabel');
+  const rules   = {
+    len:     document.getElementById('rule-len'),
+    upper:   document.getElementById('rule-upper'),
+    num:     document.getElementById('rule-num'),
+    special: document.getElementById('rule-special'),
+  };
+  const levels = [
+    { color: '#e11d48', label: 'Too weak' },
+    { color: '#f59e0b', label: 'Weak'     },
+    { color: '#3b82f6', label: 'Good'     },
+    { color: '#10b981', label: 'Strong'   },
+  ];
+
+  pwInput.addEventListener('input', () => {
+    const v = pwInput.value;
+    const hasLen     = v.length >= 8;
+    const hasUpper   = /[A-Z]/.test(v);
+    const hasNum     = /[0-9]/.test(v);
+    const hasSpecial = /[^A-Za-z0-9]/.test(v);
+    rules.len.classList.toggle('ok',     hasLen);
+    rules.upper.classList.toggle('ok',   hasUpper);
+    rules.num.classList.toggle('ok',     hasNum);
+    rules.special.classList.toggle('ok', hasSpecial);
+    const score = [hasLen, hasUpper, hasNum, hasSpecial].filter(Boolean).length;
+    segs.forEach((s, i) => { s.style.background = i < score ? levels[score - 1].color : 'var(--border)'; });
+    lbl.textContent  = v.length ? levels[score - 1]?.label ?? '' : '';
+    lbl.style.color  = v.length ? levels[score - 1]?.color : 'var(--text-muted)';
+  });
+
+  function closeModal(m) { if (m) { m.classList.add('hidden'); m.setAttribute('aria-hidden','true'); } }
+
+  /* ── Show / Hide Password ── */
+  function togglePwVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn.querySelector('i');
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type     = isHidden ? 'text' : 'password';
+    icon.className = isHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
+    btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+  }
+
+  /* ── Email domain hint (sign-up only) ── */
+  const signupEmailEl = document.getElementById('signupEmail');
+  if (signupEmailEl) {
+    signupEmailEl.addEventListener('blur', () => {
+      const v = signupEmailEl.value.trim();
+      if (v && !/@(gmail\.com|umak\.edu\.ph)$/.test(v)) {
+        signupEmailEl.setCustomValidity('Please use a @gmail.com or @umak.edu.ph email.');
+        signupEmailEl.reportValidity();
+      } else {
+        signupEmailEl.setCustomValidity('');
+      }
+    });
+    signupEmailEl.addEventListener('input', () => signupEmailEl.setCustomValidity(''));
+  }
+</script>
+</body>
+</html>

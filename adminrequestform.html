@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Direct Post — Admin Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page page-request" data-page="adminrequest">
+<div class="app-shell auth-shell">
+    <div class="auth-wrapper" style="max-width:540px;">
+        <header>
+            <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:14px;">
+                ← <a href="adminpage.html" style="color:inherit;margin-left:5px;">Back to Dashboard</a>
+            </div>
+            <h1>Admin Direct Post</h1>
+            <p>Publish content directly to the Campus Feed without requiring approval.</p>
+        </header>
+
+        <div class="type-selector">
+            <button type="button" class="type-choice" id="typeShowcase" data-type="Showcase" onclick="selectType('Showcase')">
+                ⭐ Showcase
+            </button>
+            <button type="button" class="type-choice" id="typeQuestion" data-type="Question" onclick="selectType('Question')">
+                ❓ Question
+            </button>
+            <button type="button" class="type-choice" id="typeGeneral" data-type="General" onclick="selectType('General')">
+                💬 General
+            </button>
+        </div>
+        
+        <input type="hidden" id="category" value="Showcase">
+
+        <form id="requestForm" class="form-card">
+            <label style="margin-top:10px;">
+                Post Title
+                <input type="text" id="itemName" required placeholder="e.g., Important Campus Announcement">
+            </label>
+            
+            <label>
+                Content
+                <textarea id="description" rows="5" required placeholder="What would you like to share with the students?"></textarea>
+            </label>
+            
+            <label style="margin-top:14px;">
+                Upload an Image (Optional)
+                <input type="file" id="itemImage" accept="image/png, image/jpeg, image/webp" style="background: var(--bg-surface);">
+            </label>
+
+            <div class="form-actions" style="margin-top:20px;">
+                <button type="submit" class="button primary" style="flex:1;">
+                    <i class="ph ph-megaphone"></i> Publish Directly
+                </button>
+                <a class="button secondary" href="adminpage.html">Cancel</a>
+            </div>
+            <p id="requestSuccess" aria-live="polite"></p>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

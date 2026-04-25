@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat — UMak Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .chat-container { display: flex; flex-direction: column; height: calc(100vh - 220px); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-xl); overflow: hidden; margin-top: 20px; }
+        .chat-box { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+        .bubble { max-width: 75%; padding: 12px 16px; border-radius: 18px; font-size: 0.9rem; position: relative; animation: popIn 0.25s ease; word-wrap: break-word; }
+        /* isMe = Right side (Gold/Blue), isTarget = Left side (Gray) */
+        .bubble.mine { align-self: flex-end; background: linear-gradient(135deg, var(--iac-bright), var(--iac-blue)); color: white; border-bottom-right-radius: 4px; }
+        .bubble.theirs { align-self: flex-start; background: var(--bg-raised); border: 1px solid var(--border); border-bottom-left-radius: 4px; color: var(--text-primary); }
+        .bubble::after { content: attr(data-time); display: block; font-size: 0.65rem; margin-top: 4px; opacity: 0.7; text-align: right; }
+        .chat-input-area { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; background: var(--bg-surface); }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    </style>
+</head>
+<body class="page">
+<div class="app-shell">
+<div class="layout">
+    
+    <aside class="sidebar" id="appSidebar">
+        <div class="brand-panel">
+            <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
+            <div>
+                <p class="brand-title">UMak Hub</p>
+                <span class="brand-subtitle">Campus Network</span>
+            </div>
+        </div>
+        <nav class="sidebar-nav">
+            <a class="nav-link" id="backToPortal" href="#">
+                <span class="nav-link-icon"><i class="ph ph-caret-left"></i></span> Back to Portal
+            </a>
+            <div class="nav-divider"></div>
+            <div style="padding: 10px; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">ACTIVE SESSION</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="profile-card">
+                <div class="profile-info">
+                    <div class="profile-avatar" id="userAvatar">U</div>
+                    <div>
+                        <p class="profile-name" id="userNameDisplay">User</p>
+                        <p class="profile-role" id="userRoleDisplay">Student</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <div class="content-area">
+        <header class="page-header">
+            <div>
+                <p class="section-label">Direct Message</p>
+                <h1 id="chatUserName">Loading...</h1>
+                <p id="chatUserEmail" class="section-note"></p>
+            </div>
+            <div class="header-actions">
+                <button id="endChatBtn" class="button danger sm">
+                    <i class="ph ph-stop-circle"></i> End Chat
+                </button>
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div class="chat-box" id="chatBox">
+                <div id="typingIndicator" style="padding: 0 5px; font-size: 0.75rem; color: var(--text-secondary); font-style: italic; min-height: 15px;"></div>
+            </div>
+            <form class="chat-input-area" id="chatForm">
+                <input type="text" id="chatMsgInput" placeholder="Type your message..." required autocomplete="off">
+                <button type="submit" class="button primary"><i class="ph ph-paper-plane-right"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+</div>
+
+<div id="endChatModal" class="modal hidden">
+    <div class="modal-backdrop" onclick="closeModal(document.getElementById('endChatModal'))"></div>
+    <div class="modal-panel" style="max-width:440px;">
+        <div class="modal-header">
+            <div><h2>End Conversation</h2><p>Submit a conclusion to archive this chat.</p></div>
+        </div>
+        <form id="endChatForm">
+            <label>Final Conclusion / Summary
+                <textarea id="chatConclusion" rows="4" required placeholder="What was the outcome of this chat?"></textarea>
+            </label>
+            <div class="form-actions" style="margin-top:10px;">
+                <button type="submit" class="button primary" style="flex:1;">Confirm & Archive</button>
+                <button type="button" onclick="closeModal(document.getElementById('endChatModal'))" class="button secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+<script>
+const user = getCurrentUser();
+if (!user) window.location.href = "login.html";
+
+const isAdmin = user.role === "admin";
+const urlParams = new URLSearchParams(window.location.search);
+const targetEmail = isAdmin ? urlParams.get('email') : "admin@umak.edu.ph";
+const targetName = isAdmin ? urlParams.get('name') : "System Admin";
+
+// UI Initialization
+document.getElementById('chatUserName').textContent = targetName;
+document.getElementById('chatUserEmail').textContent = targetEmail;
+document.getElementById('backToPortal').href = isAdmin ? "adminpage.html" : "memberpage.html";
+document.getElementById('userNameDisplay').textContent = user.name;
+document.getElementById('userRoleDisplay').textContent = user.role;
+document.getElementById('userAvatar').textContent = user.name.slice(0,1).toUpperCase();
+
+const chatBox = document.getElementById("chatBox");
+let chatChannel;
+
+function renderBubble(content, isMe) {
+    const div = document.createElement("div");
+    div.className = `bubble ${isMe ? 'mine' : 'theirs'}`;
+    div.textContent = content;
+    const now = new Date();
+    div.setAttribute('data-time', now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0'));
+    chatBox.insertBefore(div, document.getElementById('typingIndicator'));
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+async function initChat() {
+    const history = await dbGetMessages(user.email, targetEmail);
+    history.forEach(msg => renderBubble(msg.content, msg.sender_email === user.email));
+
+    chatChannel = supabaseClient.channel('chat-room').on('postgres_changes', { 
+        event: 'INSERT', schema: 'public', table: 'messages' 
+    }, payload => {
+        if ((payload.new.sender_email === targetEmail && payload.new.receiver_email === user.email)) {
+            renderBubble(payload.new.content, false);
+        }
+    }).on('broadcast', { event: 'typing' }, payload => {
+        const indicator = document.getElementById('typingIndicator');
+        if (payload.payload.email === targetEmail) {
+            indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
+        }
+    }).subscribe();
+
+    document.getElementById('chatForm').onsubmit = async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('chatMsgInput');
+        const content = input.value.trim();
+        if (!content) return;
+        renderBubble(content, true);
+        input.value = ""; 
+        await dbSendMessage(user.email, targetEmail, content);
+    };
+
+    // Typing Logic
+    let typingTimeout;
+    document.getElementById('chatMsgInput').addEventListener('input', () => {
+        chatChannel.send({ type: 'broadcast', event: 'typing', payload: { email: user.email, isTyping: true } });
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+            chatChannel.send({ type: 'broadcast', event: 'typing', payload: { email: user.email, isTyping: false } });
+        }, 2000);
+    });
+}
+
+// End Chat Workflow
+document.getElementById('endChatBtn').onclick = () => document.getElementById('endChatModal').classList.remove('hidden');
+
+document.getElementById('endChatForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="ph ph-circle-notch"></i> Archiving...';
+        }
+    const conclusion = document.getElementById('chatConclusion').value;
+    const history = await dbGetMessages(user.email, targetEmail); //
+    const now = new Date();
+
+    const archiveData = {
+        user_email: isAdmin ? targetEmail : user.email, //
+        admin_email: isAdmin ? user.email : "admin@umak.edu.ph",
+        action_type: "Concluded Chat",
+        meeting_date: now.toLocaleDateString(),
+        meeting_time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        location: "Virtual Chat Hub",
+        chat_history: history,
+        conclusion: conclusion //
+    };
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Archiving...";
+    }
+
+    try {
+        // 1. Save to resolutions table
+        const { error: insertError } = await supabaseClient.from('resolutions').insert([archiveData]);
+        if (insertError) throw insertError;
+
+        // 2. Clear current active messages
+        await dbDeleteMessages(user.email, targetEmail); //
+
+        // 3. Mark the chat request as resolved
+        await supabaseClient.from('chat_requests')
+                            .update({ status: 'resolved' })
+                            .eq('user_email', isAdmin ? targetEmail : user.email); //
+
+        showToast("Conversation archived successfully!");
+
+        // PAUSE: This gives you time to see the success message before redirecting
+        setTimeout(() => {
+            window.location.href = isAdmin ? "adminpage.html" : "memberpage.html";
+        }, 2000);
+
+    } catch (err) {
+        console.error("DEBUGGER - SQL ERROR:", err);
+        
+        // CRITICAL: We DO NOT redirect here. 
+        // This keeps you on the page so you can read the error in the red toast.
+        showToast("Database Error: " + (err.message || "Could not save log"), "error");
+        
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = "Confirm & Archive";
+        }
+    }
+};
+
+initChat();
+</script>
+</body>
+</html>
