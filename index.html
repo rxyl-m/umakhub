@@ -4,36 +4,69 @@
 <script src="https://unpkg.com/@phosphor-icons/web"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lost & Found — iAcademy</title>
+    <title>UMak Hub — Campus Network</title>
     <link rel="stylesheet" href="style.css">
-
-    <link rel="icon" type="image/png" href="logo.png">
+    <link rel="icon" type="image/png" href="umaklogo.png">
 </head>
 <body class="page page-home">
     <div class="app-shell">
         <section class="hero">
             <div class="hero-inner">
-                <div class="hero-eyebrow">✦ iAcademy Campus System</div>
-                <h1>Lost &amp; Found</h1>
-                <p>A streamlined system to track lost and found items across campus. Post requests, review claims, and reunite members with their belongings.</p>
+                <div class="hero-eyebrow">
+                    <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogoeyebrow">
+                    UMak Official Campus Network
+                </div>
+                <h1 style="font-family: var(--font-display); font-weight: 800;">UMak Hub</h1>
+                <p>The exclusive professional social feed for the University of Makati. Showcase your projects, collaborate with peers, and stay connected with campus updates.</p>
                 <div class="hero-actions">
-                    <a class="button primary" href="login.html">Login</a>
+                    <a class="button primary" href="login.html" style="padding: 12px 32px; font-size: 1rem;">
+                        Get Started <i class="ph ph-arrow-right" style="margin-left:8px;"></i>
+                    </a>
                 </div>
             </div>
         </section>
+
         <section class="feature-grid">
             <article class="feature-card">
-                <div class="feature-icon blue"><i class="ph ph-backpack"></i></div>
-                <h2>For Members</h2>
-                <p>Browse available items, submit a request to post a lost or found item, track your submissions, and claim items that belong to you.</p>
+                <div class="feature-icon blue"><i class="ph ph-projector-screen-chart"></i></div>
+                <h2>Project Showcase</h2>
+                <p>Post your latest web development, design, or academic projects. Get feedback through comments and build your campus reputation.</p>
             </article>
+
             <article class="feature-card">
-                <div class="feature-icon teal"><i class="ph ph-shield-check"></i></div>
-                <h2>For Admins</h2>
-                <p>Review member post requests, approve or reject item listings, manage claim requests, and keep the item board up to date.</p>
+                <div class="feature-icon teal"><i class="ph ph-chats-teardrop"></i></div>
+                <h2>Real-time Support</h2>
+                <p>Need help? Use the integrated messaging system to chat directly with administrators for academic guidance or platform support.</p>
+            </article>
+
+            <article class="feature-card">
+                <div class="feature-icon" style="background: rgba(255,204,0,0.1); border: 1px solid var(--accent); color: var(--accent);">
+                    <i class="ph ph-shield-check"></i>
+                </div>
+                <h2>Verified Community</h2>
+                <p>A safe, moderated environment exclusive to UMak emails. Every post is vetted to ensure a professional and academic standard.</p>
             </article>
         </section>
     </div>
+
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <div>
+                <div class="footer-brand">
+                    <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogofooter">
+                    <span class="footer-name">University of Makati</span>
+                </div>
+                <div class="footer-tagline">Connecting the next generation of University of Makati professionals.</div>
+            </div>
+            <div class="footer-links">
+                <a href="login.html">Sign In</a>
+                <a href="#">About the Hub</a>
+                <a href="#">Privacy Policy</a>
+            </div>
+        </div>
+        <div class="footer-bottom">© 2026 University of Makati · Computing & Information Sciences</div>
+    </footer>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="script.js"></script>

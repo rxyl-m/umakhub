@@ -487,6 +487,16 @@ function esc(s) {
     if (!s) return "";
     return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
+
+// NEW: Converts plain text URLs into clickable links
+function linkify(text) {
+    if (!text) return "";
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        // Uses your UMak Hub accent color and ensures links open in a new tab safely
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-light); text-decoration: underline; text-underline-offset: 2px;">${url}</a>`;
+    });
+}
 function categoryTag(cat) {
     if (cat === "Showcase") return `<span class="tag tag-found"><i class='ph ph-star'></i> Showcase</span>`;
     if (cat === "Question") return `<span class="tag tag-pending"><i class='ph ph-question'></i> Question</span>`;
@@ -588,7 +598,7 @@ function renderItemCard(item, actionsHtml = "") {
 
         <div style="padding: 0 20px 12px 20px;">
             <h3 style="font-size: 1.3rem; font-weight: 800; margin: 8px 0 4px 0;">${esc(item.name)}</h3>
-            <p style="font-size: 0.9rem; color: var(--text-secondary);">${esc(item.description)}</p>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); white-space: pre-wrap;">${linkify(esc(item.description))}</p>
         </div>
 
         ${_buildImgHtml(item.imageUrl, item.name)}
@@ -608,7 +618,7 @@ function renderRequestCard(request, actionsHtml = "") {
         </div>
         ${_buildImgHtml(request.imageUrl, request.name)}
         <h3 style="font-size: 1.2rem; margin: 10px 0 5px 0;">${esc(request.name)}</h3>
-        <p style="white-space: pre-wrap; font-size: 0.95rem;">${esc(request.description)}</p>
+        <p style="white-space: pre-wrap; font-size: 0.95rem;">${linkify(esc(request.description))}</p>
         ${actionsHtml}
     </article>`;
 }
