@@ -408,6 +408,13 @@ async function dbUpdateUserRole(email, role) {
     const { error } = await supabaseClient.from("users").update({ role }).eq("email", email.toLowerCase());
     if (error) throw error;
 }
+async function dbUpdateUserProfile(email, fields) {
+    const map = {};
+    if (fields.name     !== undefined) map.name     = fields.name;
+    if (fields.password !== undefined) map.password = fields.password;
+    const { error } = await supabaseClient.from("users").update(map).eq("email", email.toLowerCase());
+    if (error) throw error;
+}
 
 /* ════════════════════════════════════════════════════════
    DB: MESSAGES (CHAT)
@@ -547,6 +554,19 @@ function showToast(message, type = "success") {
     toast.innerHTML = `${icon} <span>${esc(message)}</span>`;
     container.appendChild(toast);
     setTimeout(() => { if (toast.parentElement) toast.remove(); }, 3900);
+}
+
+/* ════════════════════════════════════════════════════════
+   PASSWORD VISIBILITY TOGGLE (global — used on login & profile)
+   ════════════════════════════════════════════════════════ */
+function togglePwVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    const icon  = btn ? btn.querySelector('i') : null;
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type     = isHidden ? 'text' : 'password';
+    if (icon) icon.className = isHidden ? 'ph ph-eye-slash' : 'ph ph-eye';
+    if (btn)  btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
 }
 
 /* ════════════════════════════════════════════════════════
@@ -910,6 +930,7 @@ async function switchMemberSection(section) {
     if (section === "items")         await renderAvailableItems(user);
     if (section === "requests")      await renderMyRequests(user);
     if (section === "conversations") await renderResolutions();
+    if (section === "directory")     await renderDirectory(); // <--- NEW: Triggers the portfolio fetch!
 }
 
 async function renderMemberSection(user) {
@@ -1330,7 +1351,8 @@ function switchAdminSection(section) {
         "manage-items": renderManageItems,
         "users":        renderUsersSection,
         "activity":     renderActivityLog,
-        "conversations": renderResolutions
+        "conversations": renderResolutions,
+        "directory":    renderDirectory // <--- NEW: Maps the tab to the function!
     };
     renders[section]?.();
 }
@@ -2061,6 +2083,239 @@ function initMobileMenu() {
 }
 
 /* ════════════════════════════════════════════════════════
+   PROFILE MODAL  (member + admin)
+   ════════════════════════════════════════════════════════ */
+function openProfileModal() {
+    const user = getCurrentUser();
+    if (!user) return;
+
+    // Remove stale instance
+    document.getElementById('profileModal')?.remove();
+
+    const isSystemAdmin = user.email === ADMIN_EMAIL;
+    const initials   = (user.name || 'U').slice(0, 2).toUpperCase();
+    const isAdmin    = user.role === 'admin';
+    const roleColor  = isAdmin ? '#e11d48' : 'var(--iac-blue)';
+    const roleBg     = isAdmin ? 'rgba(225,29,72,0.12)' : 'rgba(0,80,158,0.12)';
+    const roleLabel  = isAdmin ? 'Administrator' : 'Student Member';
+    const roleIcon   = isAdmin ? 'ph-shield-star' : 'ph-student';
+    const avatarBg   = isAdmin ? '#e11d48' : 'var(--iac-blue)';
+
+    const pwSection = isSystemAdmin
+        ? `<div class="profile-info-note">
+               <i class="ph ph-info"></i>
+               Password changes for the System Admin account are not available here.
+           </div>`
+        : `<div class="profile-section-divider"></div>
+           <h4 class="profile-section-label">Change Password</h4>
+           <label>Current Password
+               <div class="pw-input-wrap">
+                   <input type="password" id="profileCurrentPw" placeholder="Enter your current password" autocomplete="current-password">
+                   <button type="button" class="pw-toggle-btn" aria-label="Toggle" onclick="togglePwVisibility('profileCurrentPw',this)">
+                       <i class="ph ph-eye-slash"></i>
+                   </button>
+               </div>
+           </label>
+           <label style="margin-top:12px;">New Password
+               <div class="pw-input-wrap">
+                   <input type="password" id="profileNewPw" placeholder="Min. 8 chars — A, 1, &amp;!" autocomplete="new-password">
+                   <button type="button" class="pw-toggle-btn" aria-label="Toggle" onclick="togglePwVisibility('profileNewPw',this)">
+                       <i class="ph ph-eye-slash"></i>
+                   </button>
+               </div>
+           </label>
+           <label style="margin-top:12px;">Confirm New Password
+               <div class="pw-input-wrap">
+                   <input type="password" id="profileConfirmPw" placeholder="Repeat new password" autocomplete="new-password">
+                   <button type="button" class="pw-toggle-btn" aria-label="Toggle" onclick="togglePwVisibility('profileConfirmPw',this)">
+                       <i class="ph ph-eye-slash"></i>
+                   </button>
+               </div>
+           </label>
+           <button class="button primary fullwidth" id="profilePwSaveBtn"
+                   onclick="saveProfilePassword()" style="margin-top:14px;">
+               <i class="ph ph-lock-key"></i> Update Password
+           </button>`;
+
+    const overlay = document.createElement('div');
+    overlay.id        = 'profileModal';
+    overlay.className = 'modal';
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.style.zIndex = '998';
+    overlay.innerHTML = `
+        <div class="modal-backdrop" onclick="closeProfileModal()"></div>
+        <div class="modal-panel" style="max-width:460px;">
+            <div class="modal-header">
+                <div>
+                    <h2><i class="ph ph-user-circle"></i> My Profile</h2>
+                    <p>View and edit your account details.</p>
+                </div>
+                <button onclick="closeProfileModal()" class="button secondary sm" aria-label="Close">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+
+            <!-- Hero card -->
+            <div class="profile-modal-hero">
+                <div class="profile-modal-avatar" id="profileModalAvatar"
+                     style="background:${avatarBg}; color:#fff;">
+                    ${initials}
+                </div>
+                <div class="profile-modal-meta">
+                    <p class="profile-modal-name" id="profileModalName">${esc(user.name)}</p>
+                    <span class="profile-modal-role-badge"
+                          style="background:${roleBg}; color:${roleColor}; border-color:${roleColor}33;">
+                        <i class="ph ${roleIcon}"></i> ${roleLabel}
+                    </span>
+                    <p class="profile-modal-email">${esc(user.email)}</p>
+                </div>
+            </div>
+
+            <div class="profile-section-divider"></div>
+
+            <!-- Edit name -->
+            <h4 class="profile-section-label">Display Name</h4>
+            <div class="profile-name-row">
+                <label style="flex:1;margin:0;">
+                    Full Name
+                    <input type="text" id="profileNameInput"
+                           value="${esc(user.name)}"
+                           placeholder="Your full name" autocomplete="name">
+                </label>
+                <button class="button primary" id="profileNameSaveBtn"
+                        onclick="saveProfileName()" style="height:42px;align-self:flex-end;white-space:nowrap;">
+                    <i class="ph ph-floppy-disk"></i> Save
+                </button>
+            </div>
+
+            <!-- Change password -->
+            ${pwSection}
+
+            <p id="profileSaveMsg" aria-live="polite" style="margin-top:12px;min-height:20px;"></p>
+        </div>`;
+
+    document.body.appendChild(overlay);
+
+    // Close on Escape
+    const escHandler = e => {
+        if (e.key === 'Escape') { closeProfileModal(); document.removeEventListener('keydown', escHandler); }
+    };
+    document.addEventListener('keydown', escHandler);
+}
+
+function closeProfileModal() {
+    document.getElementById('profileModal')?.remove();
+}
+
+async function saveProfileName() {
+    const user    = getCurrentUser();
+    const msgEl   = document.getElementById('profileSaveMsg');
+    const nameEl  = document.getElementById('profileNameInput');
+    const btn     = document.getElementById('profileNameSaveBtn');
+    const newName = nameEl?.value.trim();
+
+    showMsg(msgEl, '', '');
+    if (!newName)           { showMsg(msgEl, 'Name cannot be empty.', 'error');  return; }
+    if (newName === user.name) { showMsg(msgEl, 'No changes to save.', 'error'); return; }
+    if (newName.length < 2) { showMsg(msgEl, 'Name is too short.', 'error');    return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = "<i class='ph ph-circle-notch'></i>"; }
+
+    try {
+        if (user.email !== ADMIN_EMAIL) {
+            await dbUpdateUserProfile(user.email, { name: newName });
+        }
+        // Sync session
+        setCurrentUser({ ...user, name: newName });
+
+        // Update modal header
+        const avatarEl = document.getElementById('profileModalAvatar');
+        const nameDisp = document.getElementById('profileModalName');
+        if (avatarEl) avatarEl.textContent = newName.slice(0, 2).toUpperCase();
+        if (nameDisp) nameDisp.textContent = newName;
+
+        // Update sidebar name + avatar on both page types
+        _syncSidebarProfile(newName);
+
+        showMsg(msgEl, '✓ Name updated successfully!', 'success');
+        logActivity('profile_edited', `${user.email} updated their display name to "${newName}"`);
+    } catch (err) {
+        console.error(err);
+        showMsg(msgEl, 'Could not save. Please try again.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = "<i class='ph ph-floppy-disk'></i> Save"; }
+    }
+}
+
+async function saveProfilePassword() {
+    const user      = getCurrentUser();
+    const msgEl     = document.getElementById('profileSaveMsg');
+    const currentPw = document.getElementById('profileCurrentPw')?.value;
+    const newPw     = document.getElementById('profileNewPw')?.value;
+    const confirmPw = document.getElementById('profileConfirmPw')?.value;
+    const btn       = document.getElementById('profilePwSaveBtn');
+
+    showMsg(msgEl, '', '');
+
+    if (!currentPw || !newPw || !confirmPw) {
+        showMsg(msgEl, 'Please fill in all three password fields.', 'error'); return;
+    }
+
+    // Verify current password against DB
+    try {
+        const dbUser = await dbGetUserByEmail(user.email);
+        if (!dbUser || dbUser.password !== currentPw) {
+            showMsg(msgEl, 'Current password is incorrect.', 'error'); return;
+        }
+    } catch (err) {
+        showMsg(msgEl, 'Could not verify current password.', 'error'); return;
+    }
+
+    if (!isStrongPassword(newPw)) {
+        showMsg(msgEl, 'New password needs 8+ chars, one uppercase, one number, and one special character.', 'error'); return;
+    }
+    if (newPw !== confirmPw) {
+        showMsg(msgEl, 'New passwords do not match.', 'error'); return;
+    }
+    if (newPw === currentPw) {
+        showMsg(msgEl, 'New password must differ from the current one.', 'error'); return;
+    }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = "<i class='ph ph-circle-notch'></i> Updating…"; }
+
+    try {
+        await dbUpdateUserProfile(user.email, { password: newPw });
+        // Clear fields
+        ['profileCurrentPw','profileNewPw','profileConfirmPw'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        showMsg(msgEl, '✓ Password changed successfully!', 'success');
+        logActivity('profile_edited', `${user.email} changed their password`);
+    } catch (err) {
+        console.error(err);
+        showMsg(msgEl, 'Could not update password. Try again.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = "<i class='ph ph-lock-key'></i> Update Password"; }
+    }
+}
+
+/** Syncs the sidebar profile name + avatar letter after a name change */
+function _syncSidebarProfile(newName) {
+    const initials = newName.slice(0, 2).toUpperCase();
+    // Member page
+    const mn = document.getElementById('memberName');
+    const ma = document.getElementById('memberAvatar');
+    if (mn) mn.textContent = newName;
+    if (ma) ma.textContent = initials;
+    // Admin page
+    const an = document.getElementById('adminNameText');
+    const aa = document.getElementById('adminAvatarText');
+    if (an) an.textContent = newName;
+    if (aa) aa.textContent = initials;
+}
+
+/* ════════════════════════════════════════════════════════
    ROUTER
    ════════════════════════════════════════════════════════ */
 function initPage() {
@@ -2328,4 +2583,42 @@ async function handleDeleteComment(commentId, itemId) {
             showToast("Failed to delete comment.", "error");
         }
     });
+}
+
+async function renderDirectory() {
+    const listEl = document.getElementById("directoryList");
+    const searchEl = document.getElementById("directorySearch");
+    if (!listEl) return;
+    listEl.innerHTML = loadingState("Loading student portfolios...");
+
+    try {
+        const { data: users, error } = await supabaseClient.from('users').select('*').order('name', { ascending: true });
+        if (error) throw error;
+
+        const drawUsers = () => {
+            const q = (searchEl?.value || "").toLowerCase();
+            const filtered = users.filter(u => 
+                (u.name && u.name.toLowerCase().includes(q)) || 
+                (u.course_strand && u.course_strand.toLowerCase().includes(q))
+            );
+
+            listEl.innerHTML = filtered.length ? filtered.map(u => `
+                <div class="card item-card" style="margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer;" onclick="window.location.href='portfolio.html?email=${encodeURIComponent(u.email)}'">
+                    <div class="profile-avatar" style="width: 64px; height: 64px; font-size: 1.5rem; margin-bottom: 12px; background: ${u.avatar_url ? 'transparent' : 'var(--iac-blue)'}; color: white;">
+                        ${u.avatar_url ? `<img src="${esc(u.avatar_url)}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">` : esc(u.name.slice(0,2).toUpperCase())}
+                    </div>
+                    <h3 style="margin: 0 0 4px 0; font-size: 1.1rem; padding: 0 !important;">${esc(u.name)}</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 12px; padding: 0 !important;">${esc(u.course_strand || 'UMak Student')}</p>
+                    <button class="button outline sm" style="width: 100%;">View Portfolio</button>
+                </div>
+            `).join("") : emptyState("No students found.");
+        };
+
+        if (searchEl) searchEl.oninput = drawUsers;
+        drawUsers();
+
+    } catch (err) {
+        console.error(err);
+        listEl.innerHTML = emptyState("Failed to load directory.");
+    }
 }

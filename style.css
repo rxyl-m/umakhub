@@ -1085,3 +1085,195 @@ textarea { resize: vertical; min-height: 100px; }
     padding: 0 !important; /* Override the 20px card padding for this specific list */
     margin: 0;
 }
+
+/* ══════════════════════════════════════════════════════════
+   PROFILE MODAL
+   ══════════════════════════════════════════════════════════ */
+
+/* Clickable profile card hint */
+.profile-avatar {
+    transition: 200ms ease;
+}
+#appSidebar .profile-info {
+  width: 80%;
+    border-radius: var(--radius-sm);
+    transition: background var(--tr), opacity var(--tr);
+    transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+#appSidebar .profile-info:hover {
+    background: var(--bg-glass-hover);
+    opacity: 0.9;
+}
+#appSidebar .profile-info:hover .profile-avatar {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* Hero card inside modal */
+.profile-modal-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+    background: var(--bg-raised);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    margin-bottom: 4px;
+}
+.profile-modal-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    letter-spacing: -0.02em;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.profile-modal-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+.profile-modal-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.profile-modal-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.73rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: var(--radius-full);
+    border: 1px solid;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    width: fit-content;
+}
+.profile-modal-email {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Section divider & label inside modal */
+.profile-section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 18px 0;
+}
+.profile-section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+/* Name + save button row */
+.profile-name-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+/* Info note (system admin password notice) */
+.profile-info-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    background: var(--bg-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-top: 16px;
+    line-height: 1.4;
+}
+.profile-info-note i {
+    font-size: 1rem;
+    flex-shrink: 0;
+    color: var(--amber);
+}
+
+/* ══════════════════════════════════════════════════════════
+   SETTINGS "DISCORD-STYLE" LAYOUT
+   ══════════════════════════════════════════════════════════ */
+.settings-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 40px;
+    max-width: 1000px; /* Wider to fit both sidebar and content */
+    width: 100%;
+    margin-top: 16px;
+}
+
+.settings-sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px; /* Sticks to the top as they scroll */
+}
+
+.settings-nav-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+    padding-left: 12px;
+}
+
+.settings-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: 4px;
+}
+
+.settings-nav-link:hover {
+    background: var(--bg-glass-hover);
+    color: var(--text-primary);
+}
+
+.settings-nav-link.active {
+    background: rgba(255, 204, 0, 0.1); /* UMak Accent Background */
+    color: var(--accent);
+}
+
+.settings-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 32px; /* Space between sections */
+}
+
+.settings-section {
+    scroll-margin-top: 24px; /* Ensures the browser doesn't scroll the header under the top edge */
+}

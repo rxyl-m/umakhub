@@ -45,6 +45,9 @@
       <a class="nav-link" data-section="users" href="#">
         <span class="nav-link-icon"><i class="ph ph-users"></i></span> Users
       </a>
+      <a class="nav-link" data-section="directory" href="#">
+          <span class="nav-link-icon"><i class="ph ph-address-book"></i></span> Portfolios
+      </a>
       <div class="nav-divider"></div>
       <a class="nav-link" data-section="activity" href="#">
         <span class="nav-link-icon"><i class="ph ph-list-dashes"></i></span> Activity Log
@@ -58,23 +61,41 @@
         <button class="button secondary fullwidth theme-toggle-btn" style="margin-bottom: 12px;">
             <i class="ph ph-moon theme-icon"></i> <span style="margin-left:5px;">Toggle Theme</span>
         </button>
-      <div class="profile-card">
-        <div class="profile-info">
-          <div class="profile-avatar" id="adminAvatarText" style="background: #e11d48; color: white;">SA</div>
-          <div>
-            <p class="profile-name" id="adminNameText">System Admin</p>
-            <p class="profile-role">Administrator</p>
-          </div>
+        
+        <div class="profile-card" style="padding: 6px 8px 6px 6px;">
+            <a href="profile.html" class="profile-info" style="flex: 1; padding: 4px 6px; border-radius: var(--radius-sm); text-decoration: none; color: inherit; overflow: hidden;" title="Account Settings">
+                <div class="profile-avatar" id="adminAvatarText" style="background: #e11d48; color: white;">SA</div>
+                <div style="overflow: hidden;">
+                    <p class="profile-name" id="adminNameText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">System Admin</p>
+                    <p class="profile-role">Administrator</p>
+                </div>
+            </a>
+            
+            <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out" style="margin-left: 4px;">
+                <i class="ph ph-sign-out"></i>
+            </button>
         </div>
-        <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
-          <i class="ph ph-sign-out"></i>
-        </button>
-      </div>
     </div>
   </aside>
 
   <div class="content-area">
-
+<div id="section-directory" class="admin-section hidden">
+    <header class="page-header">
+        <div>
+            <p class="section-label">Campus Network</p>
+            <h1>Student Portfolios</h1>
+        </div>
+        <div class="header-actions">
+            <div class="search-field">
+                <input type="search" id="directorySearch" placeholder="Search by name or strand...">
+            </div>
+        </div>
+    </header>
+    <section class="panel">
+        <div id="directoryList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+            </div>
+    </section>
+</div>
     <div id="userSelectModal" class="modal hidden" aria-hidden="true">
       <div class="modal-backdrop" onclick="closeModal(this.parentElement)"></div>
       <div class="modal-panel" style="max-width:400px;">

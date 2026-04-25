@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Settings — UMak Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="umaklogo.png">
+</head>
+<body class="page page-profile" data-page="profile">
+<div class="app-shell">
+    <div class="layout">
+        
+        <aside class="sidebar" id="appSidebar">
+            <div class="brand-panel desktop-brand">
+                <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
+                <div>
+                    <p class="brand-title">UMak Hub</p>
+                    <span class="brand-subtitle">Account Settings</span>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <a class="nav-link" id="backToPortalBtn" href="#">
+                    <span class="nav-link-icon"><i class="ph ph-caret-left"></i></span> Back to Dashboard
+                </a>
+            </nav>
+        </aside>
+
+        <div class="content-area">
+            <header class="page-header">
+                <div>
+                    <p class="section-label">Account Settings</p>
+                    <h1>My Profile</h1>
+                </div>
+            </header>
+
+            <div class="settings-layout">
+                <aside class="settings-sidebar">
+                    <p class="settings-nav-label">User Settings</p>
+                    <a href="#account" class="settings-nav-link active">My Account</a>
+                    <a href="#portfolio" class="settings-nav-link">Academic Portfolio</a>
+                    <a href="#portfolio-docs" class="settings-nav-link">Portfolio Documents</a>
+                    <a href="#security" class="settings-nav-link">Password & Security</a>
+                    <a href="#preferences" class="settings-nav-link">App Preferences</a>
+                </aside>
+
+                <div class="settings-content">
+                    
+                    <form id="accountForm" class="panel settings-section" style="scroll-margin-top: 24px;">
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                            <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">My Account</h2>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 32px;">
+                            <div class="profile-avatar" style="width: 80px; height: 80px; font-size: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow); position: relative; overflow: hidden;">
+                                <span id="avatarInitials">U</span>
+                                <img id="avatarImage" src="" alt="Profile Picture" style="display: none; width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0;">
+                            </div>
+                            <div>
+                                <h3 id="editNameDisplayTop" style="margin: 0; font-size: 1.3rem; font-family: var(--font-display); font-weight: 800; letter-spacing: -0.02em;">Loading...</h3>
+                                <span class="tag tag-approved" id="editRoleDisplay" style="margin-top: 6px; display: inline-flex;">MEMBER</span>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; gap: 20px;">
+                            <label style="margin: 0;">
+                                Profile Picture
+                                <input type="file" id="editAvatarFile" accept="image/png, image/jpeg, image/webp" style="background: var(--bg-surface); padding: 8px;">
+                            </label>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <label style="margin: 0;">
+                                    Display Name
+                                    <input type="text" id="editName" required placeholder="e.g., Juan Dela Cruz">
+                                </label>
+
+                                <label style="margin: 0;">
+                                    Email Address
+                                    <input type="email" id="editEmail" required placeholder="you@umak.edu.ph">
+                                </label>
+                            </div>
+
+                            <label style="margin: 0;">
+                                About Me (Bio)
+                                <textarea id="editBio" rows="3" placeholder="Tell the campus a little about yourself, your skills, or your projects..."></textarea>
+                            </label>
+                        </div>
+                        
+                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+                            <button type="submit" class="button primary" style="padding: 10px 24px;">Save Account Details</button>
+                        </div>
+                    </form>
+
+                    <form id="portfolioForm" class="panel settings-section" style="scroll-margin-top: 24px;">
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                            <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">Academic Details</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">Set your academic standing and upload your main resume.</p>
+                        </div>
+                        
+                        <div style="display: grid; gap: 20px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                                <label style="margin: 0;">Course / Strand
+                                    <input type="text" id="editCourse" placeholder="e.g., Technical Professional - Computer Programming">
+                                </label>
+                                <label style="margin: 0;">Grade & Section
+                                    <input type="text" id="editGrade" placeholder="e.g., Grade 12 - Section A">
+                                </label>
+                            </div>
+
+                            <label style="margin: 0;">External Portfolio / GitHub Link
+                                <input type="url" id="editGithub" placeholder="https://github.com/yourusername">
+                            </label>
+
+                            <label style="margin: 0;">Main Resume (PDF or Image)
+                                <input type="file" id="editResumeFile" accept=".pdf, image/png, image/jpeg, image/webp" style="background: var(--bg-surface); padding: 8px;">
+                                
+                                <div id="uploadProgressWrapper" style="display:none; margin-top: 10px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: 6px; height: 12px; overflow: hidden;">
+                                    <div id="uploadProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--accent-light), var(--accent)); transition: width 0.3s ease;"></div>
+                                </div>
+
+                                <div id="resumePreviewContainer" style="display:none; margin-top: 14px;">
+                                    <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:6px; text-transform:uppercase;">Local Preview:</p>
+                                    <iframe id="resumePreview" style="width:100%; height:350px; border:1px solid var(--border); border-radius:8px; background: var(--bg-base);"></iframe>
+                                </div>
+
+                                <div id="currentResumeLink" style="display:none; font-size: 0.85rem; margin-top: 8px; padding: 10px; background: var(--bg-raised); border-radius: 6px; border: 1px solid var(--border);">
+                                    <i class="ph ph-file-pdf" style="color: var(--amber); margin-right: 5px;"></i> 
+                                    <a href="#" target="_blank" style="color: var(--text-primary); font-weight: 600; text-decoration: underline;">View Currently Saved Resume</a>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+                            <button type="submit" class="button primary" style="padding: 10px 24px;">Save Academic Details</button>
+                        </div>
+                    </form>
+
+                    <div id="portfolio-docs" class="panel settings-section" style="scroll-margin-top: 24px;">
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                            <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">Portfolio Documents</h2>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px;">Upload your certificates, immersion logs, journals, and diaries.</p>
+                        </div>
+                        
+                        <div id="existingDocsList" style="display: grid; gap: 10px; margin-bottom: 24px;">
+                            <div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.9rem;">Loading documents...</div>
+                        </div>
+
+                        <div style="background: var(--bg-surface); padding: 20px; border-radius: var(--radius-md); border: 1px dashed var(--border);">
+                            <h4 style="margin-top: 0; margin-bottom: 16px;">Add New Document</h4>
+                            
+                            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px;">
+                                <label style="margin: 0;">
+                                    Category
+                                    <select id="newDocType">
+                                        <option value="Certificate">Certificate</option>
+                                        <option value="Journal">Journal</option>
+                                        <option value="Log">Activity Log</option>
+                                        <option value="Diary">Diary</option>
+                                    </select>
+                                </label>
+                                <label style="margin: 0;">
+                                    Document Title
+                                    <input type="text" id="newDocTitle" placeholder="e.g., NCII CSS Certificate or Immersion Diary Week 1">
+                                </label>
+                            </div>
+
+                            <label style="margin: 0; margin-bottom: 16px; display: block;">
+                                File Upload
+                                <input type="file" id="newDocFile" accept=".pdf, image/png, image/jpeg, image/webp" style="background: var(--bg-base); padding: 8px;">
+                            </label>
+                            
+                            <button type="button" id="uploadDocBtn" class="button outline"><i class="ph ph-upload-simple"></i> Upload to Portfolio</button>
+                        </div>
+                    </div>
+
+                    <form id="securityForm" class="panel settings-section" style="scroll-margin-top: 24px;">
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                            <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">Password & Security</h2>
+                        </div>
+                        
+                        <div style="display: grid; gap: 16px;">
+                            <label style="margin: 0;">
+                                Current Password
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="currentPassword" required placeholder="Enter current password">
+                                    <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('currentPassword', this)"><i class="ph ph-eye-slash"></i></button>
+                                </div>
+                            </label>
+
+                            <label style="margin: 0;">
+                                New Password
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="newPassword" required placeholder="Min. 8 chars with A, 1, &!">
+                                    <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('newPassword', this)"><i class="ph ph-eye-slash"></i></button>
+                                </div>
+                            </label>
+
+                            <label style="margin: 0;">
+                                Repeat New Password
+                                <div class="pw-input-wrap">
+                                    <input type="password" id="confirmPassword" required placeholder="Confirm your new password">
+                                    <button type="button" class="pw-toggle-btn" aria-label="Toggle password visibility" onclick="togglePwVisibility('confirmPassword', this)"><i class="ph ph-eye-slash"></i></button>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end;">
+                            <button type="submit" class="button primary" style="padding: 10px 24px; background: var(--amber); color: var(--bg-base);">Change Password</button>
+                        </div>
+                    </form>
+
+                    <section id="preferences" class="panel settings-section" style="scroll-margin-top: 24px;">
+                        <div style="margin-bottom: 24px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+                            <h2 style="font-size: 1.25rem; font-family: var(--font-display); font-weight: 700;">App Preferences</h2>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h4 style="margin: 0 0 4px 0; font-family: var(--font-display);">Theme Appearance</h4>
+                                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Toggle between light and dark mode.</p>
+                            </div>
+                            <button type="button" class="button secondary theme-toggle-btn">
+                                <i class="ph ph-moon theme-icon"></i> Toggle Theme
+                            </button>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
+<script src="script.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    document.querySelectorAll('.settings-nav-link').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('href').substring(1);
+            const targetSection = document.getElementById(targetId);
+            if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Live Resume Preview
+document.getElementById('editResumeFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const container = document.getElementById('resumePreviewContainer');
+    const frame = document.getElementById('resumePreview');
+    if (file) {
+        frame.src = URL.createObjectURL(file);
+        container.style.display = 'block';
+    } else {
+        container.style.display = 'none';
+        frame.src = '';
+    }
+});
+
+    const sectionIds = ['accountForm', 'portfolioForm', 'portfolio-docs', 'securityForm', 'preferences'];
+    const sections = sectionIds.map(id => document.getElementById(id));
+    const navLinks = document.querySelectorAll(".settings-nav-link");
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                navLinks.forEach(link => link.classList.remove("active"));
+                // Map HTML IDs back to href anchors
+                let anchorTag = entry.target.id;
+                if(anchorTag === 'accountForm') anchorTag = 'account';
+                if(anchorTag === 'portfolioForm') anchorTag = 'portfolio';
+                if(anchorTag === 'securityForm') anchorTag = 'security';
+                
+                const activeLink = document.querySelector(`.settings-nav-link[href="#${anchorTag}"]`);
+                if (activeLink) activeLink.classList.add("active");
+            }
+        });
+    }, { rootMargin: "-20% 0px -60% 0px" });
+
+    sections.forEach(section => { if(section) observer.observe(section); });
+});
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", async () => {
+    let user = getCurrentUser();
+    if (!user) { window.location.href = "login.html"; return; }
+
+    const isSystemAdmin = user.email === ADMIN_EMAIL;
+    const returnUrl = user.role === 'admin' ? 'adminpage.html' : 'memberpage.html';
+    document.getElementById('backToPortalBtn').href = returnUrl;
+
+    // 1. Fetch Fresh User Data
+    try {
+        const { data: freshData } = await supabaseClient.from('users').select('*').eq('email', user.email).single();
+        if (freshData) { user = { ...user, ...freshData }; setCurrentUser(user); }
+    } catch(err) { console.error("Error fetching fresh profile:", err); }
+
+    // 2. Populate Account UI
+    document.getElementById('editNameDisplayTop').textContent = user.name;
+    document.getElementById('editRoleDisplay').textContent = isSystemAdmin ? "SYSTEM ADMIN" : user.role.toUpperCase();
+    document.getElementById('editName').value = user.name;
+    document.getElementById('editEmail').value = user.email;
+    document.getElementById('editBio').value = user.bio || "";
+    
+    // 3. Populate Portfolio UI
+    document.getElementById('editCourse').value = user.course_strand || "";
+    document.getElementById('editGrade').value = user.grade_section || "";
+    if (user.resume_url) {
+        document.getElementById('currentResumeLink').style.display = "block";
+        document.getElementById('currentResumeLink').querySelector('a').href = user.resume_url;
+    }
+    document.getElementById('editGithub').value = user.github_url || "";
+    const initials = user.name.slice(0, 2).toUpperCase();
+    document.getElementById('avatarInitials').textContent = initials;
+    if (user.avatar_url) {
+        const img = document.getElementById('avatarImage');
+        img.src = user.avatar_url;
+        img.style.display = "block";
+        document.getElementById('avatarInitials').style.display = "none";
+    }
+
+    // --- HELPER: File Uploader ---
+    async function uploadFileToSupabase(file, folderPrefix) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${folderPrefix}/${user.email}-${Date.now()}.${fileExt}`;
+        const { error } = await supabaseClient.storage.from('item-images').upload(fileName, file);
+        if (error) throw error;
+        const { data } = supabaseClient.storage.from('item-images').getPublicUrl(fileName);
+        return data.publicUrl;
+    }
+
+    // --- FORM 1: ACCOUNT DETAILS ---
+    document.getElementById('accountForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Saving...';
+
+        try {
+            let finalAvatarUrl = user.avatar_url;
+            const avatarFile = document.getElementById('editAvatarFile').files[0];
+            if (avatarFile) finalAvatarUrl = await uploadFileToSupabase(avatarFile, 'avatars');
+
+            const updates = { 
+                name: document.getElementById('editName').value.trim(), 
+                email: document.getElementById('editEmail').value.trim().toLowerCase(), 
+                bio: document.getElementById('editBio').value.trim(), 
+                avatar_url: finalAvatarUrl 
+            };
+            
+            const { error } = await supabaseClient.from('users').update(updates).eq('email', user.email);
+            if (error) throw error;
+            
+            Object.assign(user, updates); setCurrentUser(user);
+            showToast("Account updated successfully!");
+            
+            document.getElementById('editNameDisplayTop').textContent = user.name;
+            if(finalAvatarUrl) {
+                document.getElementById('avatarImage').src = finalAvatarUrl;
+                document.getElementById('avatarImage').style.display = "block";
+                document.getElementById('avatarInitials').style.display = "none";
+            }
+        } catch (err) { showToast("Failed to update profile.", "error"); } 
+        finally { btn.disabled = false; btn.innerHTML = 'Save Account Details'; }
+    });
+
+    // --- FORM 2: ACADEMIC PORTFOLIO ---
+   document.getElementById('portfolioForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = e.target.querySelector('button');
+    const resumeFile = document.getElementById('editResumeFile').files[0];
+    const progressWrap = document.getElementById('uploadProgressWrapper');
+    const progressBar = document.getElementById('uploadProgressBar');
+
+    btn.disabled = true; 
+    btn.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Saving...';
+
+    try {
+        let finalResumeUrl = user.resume_url;
+
+        // Handle Upload with Simulated Progress UX
+        if (resumeFile) {
+            // Strict File Size Limit (e.g., 5MB) to prevent upload crashes
+            if (resumeFile.size > 5 * 1024 * 1024) throw new Error("File is too large. Max size is 5MB.");
+
+            progressWrap.style.display = 'block';
+            progressBar.style.width = '10%';
+
+            // Simulate progress movement while Supabase handles the actual upload in the background
+            let simProg = 10;
+            const progInterval = setInterval(() => {
+                if (simProg < 85) { simProg += 10; progressBar.style.width = simProg + '%'; }
+            }, 200);
+
+            finalResumeUrl = await uploadFileToSupabase(resumeFile, 'resumes');
+
+            clearInterval(progInterval);
+            progressBar.style.width = '100%';
+        }
+
+        const updates = { 
+            course_strand: document.getElementById('editCourse').value.trim(), 
+            grade_section: document.getElementById('editGrade').value.trim(), 
+            github_url: document.getElementById('editGithub').value.trim(),
+            resume_url: finalResumeUrl 
+        };
+
+        const { error } = await supabaseClient.from('users').update(updates).eq('email', user.email);
+        if (error) throw new Error("Database connection failed during save.");
+
+        Object.assign(user, updates); setCurrentUser(user);
+        showToast("Academic Details Saved successfully!");
+
+        if(finalResumeUrl) {
+            document.getElementById('currentResumeLink').style.display = "block";
+            document.getElementById('currentResumeLink').querySelector('a').href = finalResumeUrl;
+        }
+
+    } catch (err) { 
+        console.error(err);
+        showToast(err.message || "Failed to save portfolio.", "error"); 
+    } finally { 
+        setTimeout(() => { progressWrap.style.display = 'none'; progressBar.style.width = '0%'; }, 1000);
+        btn.disabled = false; 
+        btn.innerHTML = 'Save Academic Details'; 
+    }
+});
+
+    // --- FORM 3: PORTFOLIO DOCUMENTS MANAGER ---
+    async function loadDocuments() {
+        const list = document.getElementById('existingDocsList');
+        const { data, error } = await supabaseClient.from('portfolio_documents').select('*').eq('user_email', user.email).order('created_at', { ascending: false });
+        
+        if (error) { list.innerHTML = "<p>Error loading documents.</p>"; return; }
+        if (!data || data.length === 0) { list.innerHTML = "<p style='color: var(--text-muted); font-size: 0.9rem;'>No documents uploaded yet.</p>"; return; }
+
+        list.innerHTML = data.map(doc => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                <div>
+                    <h4 style="margin: 0 0 4px 0;">${esc(doc.title)}</h4>
+                    <span class="tag" style="font-size: 0.65rem;">${esc(doc.document_type.toUpperCase())}</span>
+                </div>
+                <div style="display:flex; gap: 8px;">
+                    <a href="${esc(doc.file_url)}" target="_blank" class="button outline sm">View</a>
+                    <button type="button" class="button danger sm" onclick="deleteDocument('${doc.id}')"><i class="ph ph-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Expose delete function globally for the onclick handler
+    window.deleteDocument = async function(id) {
+        if(confirm("Are you sure you want to remove this document?")) {
+            await supabaseClient.from('portfolio_documents').delete().eq('id', id);
+            showToast("Document removed.");
+            loadDocuments();
+        }
+    };
+
+    document.getElementById('uploadDocBtn').addEventListener('click', async () => {
+        const type = document.getElementById('newDocType').value;
+        const title = document.getElementById('newDocTitle').value.trim();
+        const file = document.getElementById('newDocFile').files[0];
+        const btn = document.getElementById('uploadDocBtn');
+
+        if (!title || !file) { showToast("Please provide a title and select a file.", "error"); return; }
+
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Uploading...';
+
+        try {
+            const fileUrl = await uploadFileToSupabase(file, 'portfolio_docs');
+            const newDoc = {
+                id: `doc-${Date.now()}`,
+                user_email: user.email,
+                document_type: type,
+                title: title,
+                file_url: fileUrl
+            };
+
+            const { error } = await supabaseClient.from('portfolio_documents').insert([newDoc]);
+            if (error) throw error;
+            
+            showToast("Document added to portfolio!");
+            
+            // Reset inputs
+            document.getElementById('newDocTitle').value = "";
+            document.getElementById('newDocFile').value = "";
+            loadDocuments();
+        } catch (err) { 
+            console.error(err); 
+            showToast("Upload failed.", "error"); 
+        } finally { 
+            btn.disabled = false; btn.innerHTML = '<i class="ph ph-upload-simple"></i> Upload to Portfolio'; 
+        }
+    });
+
+    // Load documents on page start
+    loadDocuments();
+
+    // --- FORM 4: SECURITY & PASSWORD ---
+    document.getElementById('securityForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const currentPw = document.getElementById('currentPassword').value;
+        const newPw = document.getElementById('newPassword').value;
+        const confirmPw = document.getElementById('confirmPassword').value;
+        const btn = e.target.querySelector('button');
+
+        if (currentPw !== user.password) { showToast("Current password is incorrect.", "error"); return; }
+        if (newPw !== confirmPw) { showToast("New passwords do not match.", "error"); return; }
+        if (newPw.length < 8 || !/[A-Z]/.test(newPw) || !/[0-9]/.test(newPw) || !/[^A-Za-z0-9]/.test(newPw)) {
+            showToast("Password must have 8+ chars, an uppercase letter, a number, and a special character.", "error"); return;
+        }
+
+        btn.disabled = true; btn.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Saving...';
+        try {
+            const { error } = await supabaseClient.from('users').update({ password: newPw }).eq('email', user.email);
+            if (error) throw error;
+            
+            user.password = newPw; setCurrentUser(user);
+            showToast("Password changed successfully!");
+            e.target.reset();
+        } catch (err) { showToast("Failed to change password.", "error"); } 
+        finally { btn.disabled = false; btn.innerHTML = 'Change Password'; }
+    });
+});
+</script>
+</body>
+</html>

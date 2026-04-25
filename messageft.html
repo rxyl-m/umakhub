@@ -39,13 +39,24 @@
             <div style="padding: 10px; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">ACTIVE SESSION</div>
         </nav>
         <div class="sidebar-footer">
+            <button class="button secondary fullwidth theme-toggle-btn" style="margin-bottom: 12px;">
+                <i class="ph ph-moon theme-icon"></i> <span style="margin-left:5px;">Toggle Theme</span>
+            </button>
             <div class="profile-card">
                 <div class="profile-info">
-                    <div class="profile-avatar" id="userAvatar">U</div>
+                    <div class="profile-avatar" id="memberAvatar">U</div>
                     <div>
-                        <p class="profile-name" id="userNameDisplay">User</p>
-                        <p class="profile-role" id="userRoleDisplay">Student</p>
+                        <p class="profile-name" id="memberName">User</p>
+                        <p class="profile-role">Student</p>
                     </div>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <a href="profile.html" class="icon-button" aria-label="Edit Profile" title="Edit Profile" style="width: 34px; height: 34px; border-radius: 10px; font-size: 1.1rem;">
+                        <i class="ph ph-gear"></i>
+                    </a>
+                    <button id="logoutBtn" class="logout-icon-btn" aria-label="Sign Out" title="Sign Out">
+                        <i class="ph ph-sign-out"></i>
+                    </button>
                 </div>
             </div>
         </div>
