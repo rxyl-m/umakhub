@@ -472,12 +472,18 @@ const ACTIVITY_ICONS = {
     admin_granted:    "<i class='ph ph-shield-star'></i>",
     admin_revoked:    "<i class='ph ph-shield-slash'></i>",
 };
-function logActivity(type, detail) {
+
+async function logActivity(type, detail) {
     try {
-        const log = JSON.parse(localStorage.getItem(STORAGE_ACTIVITY)) ?? [];
-        log.unshift({ id:`act-${Date.now()}`, type, detail, timestamp: new Date().toISOString() });
-        localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify(log.slice(0, 200)));
-    } catch {}
+        await supabaseClient.from('activity_log').insert([{
+            id: `act-${Date.now()}`,
+            type: type,
+            detail: detail,
+            timestamp: new Date().toISOString()
+        }]);
+    } catch (err) {
+        console.error("Failed to sync activity log:", err);
+    }
 }
 
 /* ════════════════════════════════════════════════════════
@@ -587,10 +593,28 @@ function _buildImgHtml(imageUrl, name) {
 }
 
 function renderItemCard(item, actionsHtml = "") {
+    // 1. Smart Name Filter
+    let authorName = item.contact || "Member";
+    
+    if (authorName.toLowerCase().includes("admin")) {
+        authorName = "Admin"; // Forces all admin variations to just "Admin"
+    } else if (authorName.includes("@")) {
+        authorName = authorName.split("@")[0]; // Converts "rueljr@gmail.com" to "rueljr"
+    }
+
+    const avatarLetter = authorName.slice(0, 1).toUpperCase();
+
     return `
     <article class="card item-card" data-item-type="${esc(item.category||"")}" data-name="${esc((item.name||"").toLowerCase())}">
         <div class="item-header">
-            <div style="display:flex; gap:8px;">
+            <div style="display:flex; gap:8px; align-items: center; flex-wrap: wrap;">
+                
+                <div style="display:flex; align-items:center; gap:6px; margin-right: 4px;">
+                    <div class="profile-avatar" style="width:26px; height:26px; font-size:0.75rem; border-radius:6px; background: var(--bg-raised); border: 1px solid var(--border); color: var(--accent);">${esc(avatarLetter)}</div>
+                    
+                    <span style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">${esc(authorName)}</span>
+                </div>
+                
                 ${categoryTag(item.category)}
                 ${statusTag(item.status || "Approved")}
             </div>
@@ -610,15 +634,35 @@ function renderItemCard(item, actionsHtml = "") {
 }
 
 function renderRequestCard(request, actionsHtml = "") {
+    // 1. Smart Name Filter
+    let authorName = request.contact || request.requestedBy || "Member";
+    
+    if (authorName.toLowerCase().includes("admin")) {
+        authorName = "Admin";
+    } else if (authorName.includes("@")) {
+        authorName = authorName.split("@")[0];
+    }
+
+    const avatarLetter = authorName.slice(0, 1).toUpperCase();
+
     return `
     <article class="card item-card" data-item-type="${esc(request.category||"")}" data-name="${esc((request.name||"").toLowerCase())}">
         <div class="item-header">
-            ${categoryTag(request.category)}
-            ${statusTag(request.status || "Approved")}
+            <div style="display:flex; gap:8px; align-items: center; flex-wrap: wrap;">
+                
+                <div style="display:flex; align-items:center; gap:6px; margin-right: 4px;">
+                    <div class="profile-avatar" style="width:26px; height:26px; font-size:0.75rem; border-radius:6px; background: var(--bg-raised); border: 1px solid var(--border); color: var(--accent);">${esc(avatarLetter)}</div>
+                    
+                    <span style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">${esc(authorName)}</span>
+                </div>
+                
+                ${categoryTag(request.category)}
+                ${statusTag(request.status || "Approved")}
+            </div>
         </div>
         ${_buildImgHtml(request.imageUrl, request.name)}
-        <h3 style="font-size: 1.2rem; margin: 10px 0 5px 0;">${esc(request.name)}</h3>
-        <p style="white-space: pre-wrap; font-size: 0.95rem;">${linkify(esc(request.description))}</p>
+        <h3 style="font-size: 1.2rem; margin: 10px 0 5px 0; padding: 0 20px;">${esc(request.name)}</h3>
+        <p style="white-space: pre-wrap; font-size: 0.95rem; padding: 0 20px;">${linkify(esc(request.description))}</p>
         ${actionsHtml}
     </article>`;
 }
@@ -907,9 +951,7 @@ function _renderAvailableItems(items, comments, user) {
     const approved = items.filter(i => i.status === "Approved");
     const countEl  = document.getElementById("itemsCountLabel");
     const listEl   = document.getElementById("itemsList");
-    const badge    = document.getElementById("itemsBadge");
 
-    if (badge)  { badge.textContent = approved.length; badge.classList.toggle("hidden", approved.length === 0); }
     if (countEl) countEl.textContent = `${approved.length} post${approved.length !== 1 ? "s" : ""} available`;
     if (!listEl) return;
 
@@ -1231,11 +1273,12 @@ function initRequestForm() {
                     imageUrl = publicUrlData.publicUrl;
                 }
                 
-                // Save to requests table. Note: location, date, etc are blank!
+                // Save to requests table.
                 await dbInsertRequest({
                     id: `req-${Date.now()}`,
                     name: itemName, category: category, itemType: "", description: description, location: "",
-                    date: "", contact: "",
+                    date: "", 
+                    contact: user.name, // <--- NEW: Automatically saves the poster's name!
                     requestedBy: user.email, status: "pending",
                     image_url: imageUrl
                 });
@@ -1580,6 +1623,10 @@ async function renderUsersSection() {
     if (listEl) listEl.innerHTML = loadingState("Loading members…");
 
     try {
+        const currentUser = getCurrentUser();
+        // Identify if the person logged in is the original Master Admin
+        const isMasterAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+
         const [users, requests, claims] = await Promise.all([dbGetUsers(), dbGetRequests(), dbGetClaims()]);
 
         function applyFilter() {
@@ -1588,21 +1635,42 @@ async function renderUsersSection() {
             if (countEl) countEl.textContent = `${filtered.length} member${filtered.length !== 1 ? "s" : ""} registered`;
             if (!listEl) return;
             if (!filtered.length) { listEl.innerHTML = emptyState("No members found."); return; }
+            
             listEl.innerHTML = filtered.map(u => {
                 const reqCount   = requests.filter(r => r.requestedBy === u.email).length;
                 const claimCount = claims.filter(c => c.requestedBy === u.email).length;
                 const joinDate   = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : "Unknown";
-                const isAdmin    = u.role === "admin" || u.role === "Admin";
-                const roleBadge  = isAdmin
+                
+                const isTargetAdmin = u.role === "admin" || u.role === "Admin";
+                const isTargetMaster = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                
+                const roleBadge  = isTargetAdmin
                     ? `<span class="admin-badge"><i class="ph ph-shield-star"></i> Admin</span>`
                     : `<span class="tag tag-approved">● Member</span>`;
-                const roleBtn = isAdmin
-                    ? `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
-                           <i class="ph ph-shield-slash"></i> Revoke Admin
-                       </button>`
-                    : `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
-                           <i class="ph ph-shield-star"></i> Grant Admin
-                       </button>`;
+                
+                let roleBtn = "";
+                let removeBtn = `<button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-trash"></i> Remove</button>`;
+
+                // ── SECURITY LOGIC ──
+                if (isMasterAdmin) {
+                    if (isTargetMaster) {
+                        roleBtn = `<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">MASTER ADMIN</span>`;
+                        removeBtn = ""; // Master cannot be removed
+                    } else {
+                        roleBtn = isTargetAdmin
+                            ? `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-slash"></i> Revoke Admin</button>`
+                            : `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-star"></i> Grant Admin</button>`;
+                    }
+                } else {
+                    // Sub-admin viewing the list
+                    if (isTargetMaster) {
+                        removeBtn = ""; // Sub-admins cannot remove the master admin
+                    }
+                    if (isTargetAdmin && u.email !== currentUser.email) {
+                        removeBtn = ""; // Sub-admins cannot remove other admins
+                    }
+                }
+
                 return `
                 <article class="card item-card">
                     <div class="item-header">
@@ -1622,13 +1690,12 @@ async function renderUsersSection() {
                     </dl>
                     <div class="request-actions">
                         ${roleBtn}
-                        <button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}">
-                            <i class="ph ph-trash"></i> Remove
-                        </button>
+                        ${removeBtn}
                     </div>
                 </article>`;
             }).join("");
 
+            // Re-bind listeners
             listEl.querySelectorAll(".grant-admin-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
                     showConfirm("Grant Admin Powers", `Give admin privileges to ${btn.dataset.name}?`, "Grant Admin", false, async () => {
@@ -1638,10 +1705,7 @@ async function renderUsersSection() {
                             addNotification(`Admin powers granted to ${btn.dataset.name}.`, 'info');
                             showToast(`${btn.dataset.name} is now an admin!`);
                             await renderUsersSection();
-                        } catch (err) {
-                            console.error(err);
-                            showToast("Could not update role. Please try again.", "error");
-                        }
+                        } catch (err) { console.error(err); showToast("Error updating role.", "error"); }
                     });
                 })
             );
@@ -1653,10 +1717,7 @@ async function renderUsersSection() {
                             logActivity("admin_revoked", `Admin powers revoked from ${btn.dataset.name} (${btn.dataset.email})`);
                             showToast(`${btn.dataset.name}'s admin role has been revoked.`);
                             await renderUsersSection();
-                        } catch (err) {
-                            console.error(err);
-                            showToast("Could not update role. Please try again.", "error");
-                        }
+                        } catch (err) { console.error(err); showToast("Error updating role.", "error"); }
                     });
                 })
             );
@@ -1666,10 +1727,7 @@ async function renderUsersSection() {
                         try {
                             await dbDeleteUser(btn.dataset.email);
                             await renderUsersSection();
-                        } catch (err) {
-                            console.error(err);
-                            showToast("Could not remove user. Please try again.", "error");
-                        }
+                        } catch (err) { console.error(err); showToast("Error removing user.", "error"); }
                     });
                 })
             );
@@ -1682,33 +1740,54 @@ async function renderUsersSection() {
     }
 }
 
-function renderActivityLog() {
-    const log     = (() => { try { return JSON.parse(localStorage.getItem(STORAGE_ACTIVITY)) ?? []; } catch { return []; } })();
+async function renderActivityLog() {
     const countEl = document.getElementById("activityCountLabel");
     const listEl  = document.getElementById("activityList");
-    if (countEl) countEl.textContent = `${log.length} event${log.length !== 1 ? "s" : ""} recorded`;
+    if (countEl) countEl.textContent = "Loading...";
     if (!listEl) return;
-    if (!log.length) { listEl.innerHTML = emptyState("No activity recorded yet."); return; }
-    listEl.innerHTML = log.map(entry => {
-        const icon  = ACTIVITY_ICONS[entry.type] || "◎";
-        const time  = new Date(entry.timestamp).toLocaleString();
-        const label = entry.type.replace(/_/g, " ");
-        return `
-        <div class="activity-entry">
-            <div class="activity-icon">${icon}</div>
-            <div>
-                <p class="activity-detail">${esc(entry.detail)}</p>
-                <p class="activity-meta"><span class="activity-type">${esc(label)}</span> · ${esc(time)}</p>
-            </div>
-        </div>`;
-    }).join("");
+    
+    try {
+        const { data: log, error } = await supabaseClient
+            .from('activity_log')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(100);
+            
+        if (error) throw error;
+        
+        if (countEl) countEl.textContent = `${log.length} event${log.length !== 1 ? "s" : ""} recorded`;
+        if (!log.length) { listEl.innerHTML = emptyState("No activity recorded yet."); return; }
+        
+        listEl.innerHTML = log.map(entry => {
+            const icon  = ACTIVITY_ICONS[entry.type] || "◎";
+            const time  = new Date(entry.timestamp).toLocaleString();
+            const label = entry.type.replace(/_/g, " ");
+            return `
+            <div class="activity-entry">
+                <div class="activity-icon">${icon}</div>
+                <div>
+                    <p class="activity-detail">${esc(entry.detail)}</p>
+                    <p class="activity-meta"><span class="activity-type">${esc(label)}</span> · ${esc(time)}</p>
+                </div>
+            </div>`;
+        }).join("");
+    } catch (err) {
+        console.error(err);
+        listEl.innerHTML = emptyState("Failed to load activity log from database.");
+    }
+
     const clearBtn = document.getElementById("clearActivityBtn");
     if (clearBtn) {
         clearBtn.onclick = () => {
-            showConfirm("Clear Log", "Are you sure you want to clear the entire activity log?", "Clear All", true, () => {
-                localStorage.setItem(STORAGE_ACTIVITY, JSON.stringify([]));
-                logActivity("activity_cleared", "Activity log cleared by admin");
-                renderActivityLog();
+            showConfirm("Clear Log", "Are you sure you want to clear the entire activity log?", "Clear All", true, async () => {
+                try {
+                    // Deletes everything in the log table
+                    await supabaseClient.from('activity_log').delete().neq('id', '0'); 
+                    await logActivity("activity_cleared", "Activity log cleared by admin");
+                    renderActivityLog();
+                } catch (err) {
+                    console.error("Clear failed", err);
+                }
             });
         };
     }
@@ -1924,11 +2003,11 @@ function initAdminRequestForm() {
                     id: `item-${Date.now()}`,
                     name: itemName, 
                     category: category, 
-                    itemType: "Admin Post", // Default value since the picker is gone
+                    itemType: "Admin Post",
                     description: description, 
-                    location: "UMak Campus", // Default value
+                    location: "UMak Campus", 
                     date: new Date().toLocaleDateString(), 
-                    contact: ADMIN_EMAIL,
+                    contact: user.name, // <--- NEW: Replaced ADMIN_EMAIL with user.name
                     imageUrl: imageUrl 
                 });
 
@@ -2063,9 +2142,13 @@ async function renderResolutions() {
     listEl.innerHTML = loadingState("Loading archived chats...");
     
     const user = getCurrentUser();
+    // NEW: We define isAdmin right here so the rest of the function can use it
+    const isAdmin = user && user.role === "admin"; 
+    
     let query = supabaseClient.from("resolutions").select("*").order("created_at", { ascending: false });
     
-    if (user && user.role !== "admin") {
+    // Use our new variable to filter the database query securely
+    if (!isAdmin) {
         query = query.eq("user_email", user.email);
     }
     
