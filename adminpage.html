@@ -13,6 +13,9 @@
 <div class="app-shell">
 <div class="layout">
 
+  <!-- Mobile sidebar backdrop overlay -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
   <div class="mobile-header">
     <div class="brand-panel" style="margin-bottom:0;padding:0;">
       <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
@@ -131,7 +134,7 @@
         </div>
         <form id="editItemForm">
           <input type="hidden" id="editItemId">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="grid-2-col" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" id="editModalGrid">
             <label style="margin-bottom:0;">Post Title<input type="text" id="editItemName" required></label>
             <label style="margin-bottom:0;">Category
               <select id="editItemCategory">
@@ -305,5 +308,32 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase.js"></script>
 <script src="script.js"></script>
+<script>
+/* ── Mobile Sidebar Overlay Sync ── */
+(function() {
+  const overlay = document.getElementById('sidebarOverlay');
+  const sidebar = document.getElementById('appSidebar');
+  const menuBtn = document.getElementById('mobileMenuBtn');
+  const menuIcon = document.getElementById('menuIcon');
+  if (!overlay || !sidebar) return;
+  const close = () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    if (menuIcon) menuIcon.className = 'ph ph-list';
+  };
+  overlay.addEventListener('click', close);
+  const orig = menuBtn && menuBtn.onclick;
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      setTimeout(() => {
+        overlay.classList.toggle('active', sidebar.classList.contains('open'));
+      }, 0);
+    });
+  }
+  document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
+    l.addEventListener('click', () => overlay.classList.remove('active'));
+  });
+})();
+</script>
 </body>
 </html>

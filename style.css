@@ -186,7 +186,7 @@ button, input, select, textarea { font: inherit; }
   width: 36px; height: 36px; flex-shrink: 0;
 }
 
-.brand-title { font-family: var(--font-display); font-size: 0.88rem; font-weight: 700; color: var(--text-primary); }
+.brand-title { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: var(--text-primary); margin-bottom: -0.5rem;}
 .brand-subtitle { color: var(--text-secondary); font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; }
 
 /* Nav */
@@ -1030,12 +1030,12 @@ textarea { resize: vertical; min-height: 100px; }
 #umaklogo {
     width: 60px;
     height: 60px;
-    border-radius: 6px;
+    border-radius: 100%;
     object-fit: cover;
 }
 #umaklogo:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 24px var(--iac-accent);
+    box-shadow: 0 0 24px var(--iac-accent);
 }
 #umaklogoeyebrow {
     margin-top: -2px;
@@ -1397,4 +1397,421 @@ input:focus, textarea:focus, select:focus {
         gap: 16px;
         margin-bottom: 32px;
     }
+}
+
+/* ══════════════════════════════════════════════════════════
+   ENHANCED MOBILE RESPONSIVENESS — UMak Hub v2
+   Comprehensive overhaul for all screen sizes
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Sidebar Slide-In Overlay (mobile backdrop) ── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 998;
+  background: rgba(5, 10, 20, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+  cursor: pointer;
+}
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* ── Mobile Header — Tighter, cleaner ── */
+@media (max-width: 1100px) {
+  .mobile-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-radius: var(--radius-lg);
+    margin-bottom: 12px;
+  }
+
+  /* Minimum touch target for all nav/action buttons */
+  .nav-link          { min-height: 44px; padding: 10px 12px; }
+  .filter-tab        { min-height: 38px; padding: 7px 14px; }
+  .cat-pill          { min-height: 36px; padding: 6px 14px; }
+  .icon-button       { width: 44px; height: 44px; }
+  .logout-icon-btn   { width: 40px; height: 40px; }
+
+  /* Header actions fill width */
+  .page-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .search-field {
+    min-width: 0;
+    flex: 1;
+  }
+
+  /* Filter tabs: horizontal scroll, no wrap */
+  .filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+    max-width: 100%;
+    border-radius: var(--radius-lg);
+  }
+  .filter-tabs::-webkit-scrollbar { display: none; }
+  .filter-tab { flex-shrink: 0; }
+
+  /* Stats grid: 2 columns on tablet */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* Page header stacks cleanly */
+  .page-header > div:first-child { flex: 1; min-width: 0; }
+
+  /* Sidebar footer profile card — prevent overflow */
+  .profile-card { flex-wrap: nowrap; overflow: hidden; }
+  .profile-name { font-size: 0.8rem; }
+}
+
+/* ── Tablet (720px – 1100px) ── */
+@media (max-width: 1000px) {
+  /* Content-area modals: ensure full width usage */
+  .modal-panel { width: min(100%, 680px); }
+
+  /* Directory portfolio grid */
+  #directoryList {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  }
+
+  /* Docs grid on portfolio page */
+  #docsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  }
+}
+
+/* ── Small Tablet / Large Phone (481px – 720px) ── */
+@media (max-width: 720px) {
+
+  /* Shell padding */
+  .app-shell { padding: 10px 12px; }
+
+  /* Page header */
+  .page-header {
+    padding: 14px 16px;
+    gap: 10px;
+  }
+  .page-header h1 {
+    font-size: clamp(1.35rem, 5vw, 1.8rem);
+  }
+
+  /* Stats: 2 columns */
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .stat-value { font-size: 1.7rem; }
+
+  /* Panels */
+  .panel { padding: 14px 16px; }
+  .panel-header { flex-direction: column; gap: 8px; }
+
+  /* Form cards */
+  .form-card { padding: 18px; }
+
+  /* Auth shell */
+  .auth-shell { padding: 20px 12px; }
+  .auth-wrapper { max-width: 100% !important; }
+
+  /* Signup name fields: stack vertically */
+  #signupForm > div[style] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  /* Edit post modal fields: stack on mobile */
+  #editItemForm > div[style] {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  /* Modal */
+  .modal { padding: 12px; }
+  .modal-panel { padding: 18px 16px; max-height: 92vh; }
+  .modal-header h2 { font-size: 1.1rem; }
+
+  /* Category filter pills: horizontal scroll */
+  .cat-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 6px;
+    gap: 6px;
+  }
+  .cat-filter-row::-webkit-scrollbar { display: none; }
+  .cat-pill { flex-shrink: 0; }
+
+  /* Chat bubbles — wider on phone */
+  .bubble { max-width: 86%; }
+
+  /* Chat container: dynamic height */
+  .chat-container {
+    height: calc(100dvh - 200px) !important;
+    height: calc(100vh - 200px) !important;
+  }
+
+  /* Form actions */
+  .form-actions { flex-wrap: wrap; gap: 8px; }
+
+  /* Directory grid */
+  #directoryList {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  }
+
+  /* Footer */
+  .site-footer { padding: 24px 18px 20px; }
+  .footer-inner { grid-template-columns: 1fr; gap: 14px; }
+  .footer-links { justify-content: flex-start; flex-wrap: wrap; gap: 14px; }
+
+  /* FAB */
+  .fab-container { bottom: 24px; right: 50%; transform: translateX(50%); align-items: center; }
+  .fab-options { align-items: center; }
+
+  /* Portfolio page back button */
+  #backBtn { margin-bottom: 8px; }
+
+  /* User select modal */
+  #userSelectModal .modal-panel { max-width: 100% !important; }
+
+  /* Notification dropdown — full width safety */
+  .notif-dropdown {
+    right: -10px;
+    width: min(340px, calc(100vw - 20px));
+  }
+}
+
+/* ── Small Phone (≤ 480px) ── */
+@media (max-width: 480px) {
+
+  /* App shell — minimal padding */
+  .app-shell { padding: 8px 10px; }
+
+  /* Mobile header */
+  .mobile-header { padding: 11px 14px; margin-bottom: 10px; border-radius: var(--radius-lg); }
+  .brand-title  { font-size: 0.82rem; }
+  .brand-subtitle { font-size: 0.66rem; }
+
+  /* Page header */
+  .page-header { padding: 12px 14px; border-radius: var(--radius-lg); }
+  .page-header h1 { font-size: clamp(1.2rem, 6vw, 1.6rem); }
+  .section-label { font-size: 0.62rem; }
+
+  /* Stats grid: single column on very small phones */
+  .stats-grid { grid-template-columns: 1fr; gap: 8px; }
+  .stat-card { padding: 14px 16px; }
+  .stat-value { font-size: 1.5rem; }
+
+  /* Panels */
+  .panel { padding: 12px 14px; border-radius: var(--radius-lg); }
+
+  /* Type selector: stack vertically */
+  .type-selector { flex-direction: column; gap: 8px; }
+  .type-choice { width: 100%; justify-content: flex-start; padding: 12px 16px; }
+
+  /* Form labels */
+  label { font-size: 0.73rem; }
+  input, textarea, select { font-size: 0.86rem; padding: 10px 12px; }
+
+  /* Auth */
+  .auth-shell header h1 { font-size: 1.6rem; }
+  .auth-shell { padding: 16px 10px; }
+  .form-card { padding: 16px 14px; border-radius: var(--radius-lg); }
+
+  /* Form action buttons: stack */
+  .form-actions { flex-direction: column; gap: 8px; }
+  .form-actions .button { width: 100%; justify-content: center; }
+  .form-actions a.button { text-align: center; }
+
+  /* Hero page */
+  .hero { padding: 32px 12px; }
+  .hero h1 { font-size: clamp(1.8rem, 9vw, 2.4rem); margin-bottom: 14px; }
+  .hero p { font-size: 0.9rem; margin-bottom: 22px; }
+  .hero-eyebrow { font-size: 0.66rem; padding: 4px 10px; }
+  .hero-actions { flex-direction: column; align-items: center; }
+  .hero-actions .button { width: 100%; max-width: 280px; padding: 13px 24px; }
+
+  /* Feature grid: single column */
+  .feature-grid { grid-template-columns: 1fr; gap: 10px; padding: 24px 0; }
+  .feature-card { padding: 18px; }
+
+  /* Item cards */
+  .item-card h3, 
+  .item-card p,
+  .item-card .item-header,
+  .item-card .comment-section,
+  .item-card .request-actions {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .card-img-thumb { height: 170px; margin: 6px 10px; }
+
+  /* Request actions: wrap buttons */
+  .request-actions { gap: 6px; flex-wrap: wrap; padding-left: 14px; }
+  .request-actions .button { font-size: 0.77rem; padding: 6px 12px; }
+
+  /* Tags */
+  .tag { font-size: 0.66rem; padding: 2px 8px; }
+
+  /* Admin section filter bar */
+  .header-actions { gap: 8px; }
+
+  /* Modal */
+  .modal { padding: 8px; }
+  .modal-panel { padding: 14px 12px; border-radius: var(--radius-lg); }
+  .modal-header { margin-bottom: 14px; padding-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+  .modal-header h2 { font-size: 1rem; }
+
+  /* User select modal list */
+  #userChatList { max-height: 220px !important; }
+
+  /* Chat page */
+  .chat-container {
+    height: calc(100dvh - 160px) !important;
+    height: calc(100vh - 160px) !important;
+    border-radius: var(--radius-lg);
+    margin-top: 12px;
+  }
+  .chat-input-area { padding: 10px 12px; gap: 8px; }
+  #chatMsgInput { font-size: 0.86rem; }
+  .bubble { max-width: 90%; padding: 9px 12px; font-size: 0.84rem; }
+
+  /* Directory — single column */
+  #directoryList {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Portfolio docs grid — single column */
+  #docsGrid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Profile page portfolio header */
+  .portfolio-header { padding: 24px 14px; }
+  .portfolio-name { font-size: 1.6rem; }
+
+  /* Notif bell dropdown: anchor to viewport edge */
+  .notif-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 80px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-width: none;
+  }
+
+  /* Filter tabs */
+  .filter-tabs { gap: 2px; padding: 2px; }
+  .filter-tab { padding: 7px 11px; font-size: 0.76rem; }
+
+  /* FAB slightly smaller on tiny phones */
+  .fab-main { width: 54px; height: 54px; }
+  .fab-option { padding: 9px 14px; font-size: 0.81rem; }
+
+  /* Sidebar footer */
+  .sidebar-footer { padding-top: 12px; }
+  .profile-card { padding: 6px 8px !important; }
+
+  /* Brand panel in sidebar */
+  .sidebar .brand-panel { padding: 4px 6px; margin-bottom: 16px; }
+
+  /* Settings layout already collapses, just tighten */
+  .settings-layout { gap: 8px; margin-top: 10px; }
+  .settings-section { margin-bottom: 0; }
+
+  /* Footer */
+  .site-footer { padding: 20px 14px 18px; }
+  .footer-bottom { font-size: 0.69rem; margin-top: 18px; padding-top: 14px; }
+  .footer-links { gap: 10px; }
+  .footer-links a { font-size: 0.75rem; }
+
+  /* Toast — full-width on tiny phones */
+  #toastContainer {
+    left: 10px;
+    right: 10px;
+    bottom: 24px;
+    transform: none;
+    width: auto;
+  }
+  .toast { padding: 10px 16px; font-size: 0.82rem; border-radius: var(--radius-lg); }
+
+  /* Activity log */
+  .activity-entry { gap: 10px; padding: 11px 0; }
+  .activity-icon { width: 32px; height: 32px; font-size: 0.9rem; border-radius: 8px; }
+  .activity-detail { font-size: 0.82rem; }
+  .activity-meta { font-size: 0.7rem; }
+
+  /* Terms modal body */
+  .terms-modal-body { max-height: 45vh; }
+}
+
+/* ── Extra Small Phones (≤ 360px) ── */
+@media (max-width: 360px) {
+  .app-shell { padding: 6px 8px; }
+  .page-header h1 { font-size: 1.15rem; }
+  .stat-value { font-size: 1.3rem; }
+  .button { font-size: 0.8rem; padding: 8px 14px; }
+  .auth-shell header h1 { font-size: 1.4rem; }
+  .hero h1 { font-size: 1.7rem; }
+  .type-choice { padding: 10px 14px; font-size: 0.82rem; }
+}
+
+/* ── Landscape Phone fix ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .auth-shell { padding: 12px; place-items: start; }
+  .chat-container {
+    height: calc(100dvh - 120px) !important;
+    height: calc(100vh - 120px) !important;
+  }
+  .hero { min-height: auto; padding: 30px 20px; }
+  .sidebar { height: 100vh; overflow-y: auto; }
+}
+
+/* ── Safe area for notched phones (iOS) ── */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .fab-container {
+    bottom: max(28px, calc(16px + env(safe-area-inset-bottom)));
+  }
+  .chat-input-area {
+    padding-bottom: max(16px, calc(12px + env(safe-area-inset-bottom)));
+  }
+  .mobile-header {
+    padding-top: max(14px, calc(8px + env(safe-area-inset-top)));
+  }
+}
+
+/* ── Smooth sidebar open/close indicator for mobile ── */
+@media (max-width: 1100px) {
+  /* Add visual active indicator to sidebar nav when scrolled */
+  .sidebar-nav { overflow-y: auto; -webkit-overflow-scrolling: touch; padding-right: 2px; }
+
+  /* Profile page avatar wrapper fix */
+  .profile-avatar-wrapper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+
+
+/* ── Grid 2-col responsive override (used on signup + edit modal) ── */
+@media (max-width: 600px) {
+  .grid-2-col,
+  #signupNameGrid,
+  #editModalGrid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
 }
