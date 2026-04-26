@@ -222,10 +222,6 @@ async function initChat() {
         }, 2000);
     });
 }
-
-// End Chat Workflow
-document.getElementById('endChatBtn').onclick = () => document.getElementById('endChatModal').classList.remove('hidden');
-
 document.getElementById('endChatForm').onsubmit = async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
