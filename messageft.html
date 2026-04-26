@@ -145,10 +145,13 @@
 const user = getCurrentUser();
 if (!user) window.location.href = "login.html";
 
-const isAdmin = user.role === "admin";
+// Case-insensitive check to catch both "admin" and "Admin"
+const isAdmin = user.role && user.role.toLowerCase() === "admin";
 const urlParams = new URLSearchParams(window.location.search);
-const targetEmail = isAdmin ? urlParams.get('email') : "admin@umak.edu.ph";
-const targetName = isAdmin ? urlParams.get('name') : "System Admin";
+
+// Extract with safe fallbacks so it never renders "null"
+const targetEmail = isAdmin ? (urlParams.get('email') || "Unknown Email") : "admin@umak.edu.ph";
+const targetName = isAdmin ? (urlParams.get('name') || targetEmail.split('@')[0] || "Student Member") : "System Admin";
 
 // UI Initialization
 document.getElementById('chatUserName').textContent = targetName;
@@ -176,12 +179,33 @@ const chatBox = document.getElementById("chatBox");
 let chatChannel;
 
 function renderBubble(content, isMe) {
+    // Create a wrapper to hold both the name and the bubble
+    const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.flexDirection = "column";
+    wrapper.style.alignItems = isMe ? "flex-end" : "flex-start";
+    wrapper.style.marginBottom = "8px";
+
+    // Create the small name label
+    const senderLabel = document.createElement("span");
+    senderLabel.style.fontSize = "0.7rem";
+    senderLabel.style.color = "var(--text-muted)";
+    senderLabel.style.marginBottom = "2px";
+    senderLabel.style.padding = "0 4px";
+    senderLabel.textContent = isMe ? "You" : targetName;
+
+    // Create the actual bubble
     const div = document.createElement("div");
     div.className = `bubble ${isMe ? 'mine' : 'theirs'}`;
     div.textContent = content;
     const now = new Date();
     div.setAttribute('data-time', now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0'));
-    chatBox.insertBefore(div, document.getElementById('typingIndicator'));
+
+    // Assemble and inject
+    wrapper.appendChild(senderLabel);
+    wrapper.appendChild(div);
+
+    chatBox.insertBefore(wrapper, document.getElementById('typingIndicator'));
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 

@@ -2398,7 +2398,7 @@ async function renderResolutions() {
     
     const user = getCurrentUser();
     // NEW: We define isAdmin right here so the rest of the function can use it
-    const isAdmin = user && user.role === "admin"; 
+    const isAdmin = user && user.role && user.role.toLowerCase() === "admin";
     
     let query = supabaseClient.from("resolutions").select("*").order("created_at", { ascending: false });
     
