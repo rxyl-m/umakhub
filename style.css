@@ -1027,7 +1027,7 @@ textarea { resize: vertical; min-height: 100px; }
     justify-content: center;
 }
 
-#umaklogo {
+#umaklogo, #umaklogoMobile {
     width: 60px;
     height: 60px;
     border-radius: 100%;
