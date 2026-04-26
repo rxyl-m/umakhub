@@ -33,10 +33,32 @@
         }
     </style>
 </head>
-<body class="page">
+<body class="page" data-page="chat">
 <div class="app-shell">
 <div class="layout">
-    
+
+    <!-- Mobile sidebar backdrop overlay -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Mobile header — required so initMobileMenu() has elements to attach to -->
+    <div class="mobile-header">
+        <div class="brand-panel" style="margin-bottom:0; padding:0;">
+            <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogoMobile">
+            <div>
+                <p class="brand-title">UMak Hub</p>
+                <span class="brand-subtitle" id="chatSubtitleMobile">Direct Message</span>
+            </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button id="endChatBtnMobile" class="button danger sm" style="display:none;">
+                <i class="ph ph-stop-circle"></i> End
+            </button>
+            <button class="icon-button" id="mobileMenuBtn" aria-label="Toggle Menu">
+                <i class="ph ph-list" id="menuIcon"></i>
+            </button>
+        </div>
+    </div>
+
     <aside class="sidebar" id="appSidebar">
         <div class="brand-panel">
             <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
@@ -137,9 +159,23 @@ const targetName = isAdmin ? urlParams.get('name') : "System Admin";
 document.getElementById('chatUserName').textContent = targetName;
 document.getElementById('chatUserEmail').textContent = targetEmail;
 document.getElementById('backToPortal').href = isAdmin ? "adminpage.html" : "memberpage.html";
-document.getElementById('userNameDisplay').textContent = user.name;
-document.getElementById('userRoleDisplay').textContent = user.role;
-document.getElementById('userAvatar').textContent = user.name.slice(0,1).toUpperCase();
+
+// Fix: use the actual IDs that exist in the sidebar HTML
+const memberNameEl   = document.getElementById('memberName');
+const memberAvatarEl = document.getElementById('memberAvatar');
+if (memberNameEl)   memberNameEl.textContent   = user.name;
+if (memberAvatarEl) memberAvatarEl.textContent = (user.name || 'U').slice(0, 2).toUpperCase();
+
+// Also update mobile header subtitle with who we're chatting to
+const chatSubtitle = document.getElementById('chatSubtitleMobile');
+if (chatSubtitle) chatSubtitle.textContent = targetName;
+
+// Wire up the mobile End Chat button (mirrors the desktop one)
+const endChatBtnMobile = document.getElementById('endChatBtnMobile');
+if (endChatBtnMobile) {
+    endChatBtnMobile.style.display = 'inline-flex';
+    endChatBtnMobile.onclick = () => document.getElementById('endChatModal').classList.remove('hidden');
+}
 
 const chatBox = document.getElementById("chatBox");
 let chatChannel;
@@ -257,6 +293,34 @@ document.getElementById('endChatForm').onsubmit = async (e) => {
 };
 
 initChat();
+</script>
+
+<script>
+/* ── Mobile Sidebar Overlay Sync ── */
+(function() {
+    const overlay = document.getElementById('sidebarOverlay');
+    const sidebar = document.getElementById('appSidebar');
+    const menuBtn = document.getElementById('mobileMenuBtn');
+    const menuIcon = document.getElementById('menuIcon');
+    if (!overlay || !sidebar) return;
+    const closeSidebar = () => {
+        sidebar.classList.remove('open');
+        overlay.classList.remove('active');
+        if (menuIcon) menuIcon.className = 'ph ph-list';
+    };
+    overlay.addEventListener('click', closeSidebar);
+    if (menuBtn) {
+        menuBtn.addEventListener('click', () => {
+            setTimeout(() => {
+                overlay.classList.toggle('active', sidebar.classList.contains('open'));
+            }, 0);
+        });
+    }
+    // Close sidebar when navigating away via nav links
+    document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
+        l.addEventListener('click', closeSidebar);
+    });
+})();
 </script>
 </body>
 </html>
