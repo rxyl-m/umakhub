@@ -75,25 +75,17 @@ function isStrongPassword(pw) {
 }
 
 /* ════════════════════════════════════════════════════════
-   NOTIFICATIONS (localStorage-based)
+   NOTIFICATIONS (DB-powered realtime)
    ════════════════════════════════════════════════════════ */
-function getNotifications() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_NOTIFS)) || []; }
-    catch { return []; }
-}
-function addNotification(text, type = 'info') {
-    const notifs = getNotifications();
-    notifs.unshift({ id: `n-${Date.now()}`, text, type, read: false, time: new Date().toISOString() });
-    localStorage.setItem(STORAGE_NOTIFS, JSON.stringify(notifs.slice(0, 50)));
-}
-function markAllRead() {
-    const notifs = getNotifications().map(n => ({ ...n, read: true }));
-    localStorage.setItem(STORAGE_NOTIFS, JSON.stringify(notifs));
-}
-function renderNotifDropdown() {
-    const notifs    = getNotifications();
-    const unread    = notifs.filter(n => !n.read).length;
-    const countEl   = document.getElementById('notificationCount');
+async function fetchAndRenderNotifications() {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    const { data: notifs } = await supabaseClient.from('notifications')
+        .select('*').eq('user_email', user.email).order('created_at', { ascending: false }).limit(50);
+
+    const unread = (notifs || []).filter(n => !n.read).length;
+    const countEl = document.getElementById('notificationCount');
     if (countEl) countEl.textContent = unread;
 
     let dropdown = document.getElementById('notifDropdown');
@@ -107,27 +99,39 @@ function renderNotifDropdown() {
     dropdown.innerHTML = `
         <div class="notif-header">
             Notifications
-            <button class="button sm secondary" onclick="markAllRead(); renderNotifDropdown();">
+            <button class="button sm secondary" onclick="markAllNotificationsRead()">
                 Mark all read
             </button>
         </div>
         <div class="notif-list">
-            ${notifs.length ? notifs.map(n => `
+            ${notifs && notifs.length ? notifs.map(n => `
                 <div class="notif-item ${n.read ? '' : 'unread'}">
                     ${n.read ? '' : '<div class="notif-dot"></div>'}
                     <div>
                         <div class="notif-text">${esc(n.text)}</div>
-                        <div class="notif-time">${new Date(n.time).toLocaleString()}</div>
+                        <div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
                     </div>
                 </div>`).join('') :
             '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.82rem;">No notifications yet.</div>'}
         </div>`;
 }
 
+async function markAllNotificationsRead() {
+    const user = getCurrentUser();
+    if (!user) return;
+    await supabaseClient.from('notifications').update({ read: true }).eq('user_email', user.email).eq('read', false);
+    fetchAndRenderNotifications();
+}
+
+async function dbAddNotification(userEmail, text, type = 'info') {
+    if (!userEmail) return;
+    await supabaseClient.from('notifications').insert([{ user_email: userEmail, text: text, type: type }]);
+}
+
 function setupNotifBell() {
     const bell = document.getElementById('notificationBell');
     if (!bell) return;
-    renderNotifDropdown();
+    fetchAndRenderNotifications();
 
     bell.onclick = (e) => {
         e.stopPropagation();
@@ -135,7 +139,7 @@ function setupNotifBell() {
         if (!dd) return;
         const isHidden = dd.classList.contains('hidden');
         dd.classList.toggle('hidden', !isHidden);
-        if (isHidden) { markAllRead(); renderNotifDropdown(); }
+        if (isHidden) markAllNotificationsRead();
     };
     document.addEventListener('click', () => {
         document.getElementById('notifDropdown')?.classList.add('hidden');
@@ -255,10 +259,39 @@ function showImageLightbox(url, alt) {
 /* ════════════════════════════════════════════════════════
    DB NORMALIZERS
    ════════════════════════════════════════════════════════ */
-const toItem    = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, status:r.status, imageUrl: r.image_url });
-const toRequest = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status, imageUrl: r.image_url });
+const toItem    = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, ownerEmail:r.owner_email, status:r.status, imageUrl: r.image_url });
+const toRequest = r => ({ id:r.id, name:r.name, category:r.category, itemType:r.item_type,  description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, ownerEmail:r.owner_email, status:r.status, imageUrl: r.image_url });
 const toClaim   = r => ({ id:r.id, itemId:r.item_id, name:r.name, category:r.category, itemType:r.item_type, description:r.description, location:r.location, date:r.date, contact:r.contact, requestedBy:r.requested_by, status:r.status, imageUrl: r.image_url });
 const toUser    = r => ({ id:r.id, email:r.email, name:r.name, role:r.role, password:r.password, joinedAt:r.created_at });
+
+/* ════════════════════════════════════════════════════════
+   DB: LIKES
+   ════════════════════════════════════════════════════════ */
+async function dbGetLikes() {
+    const { data, error } = await supabaseClient.from("likes").select("*");
+    if (error) throw error;
+    return data || [];
+}
+
+window.toggleLike = async function(itemId, commentId, ownerEmail) {
+    const user = getCurrentUser();
+    if (!user) return;
+    
+    let query = supabaseClient.from("likes").select("*").eq("user_email", user.email);
+    if (commentId) query = query.eq("comment_id", commentId);
+    else query = query.eq("item_id", itemId).is("comment_id", null);
+
+    const { data: existing } = await query;
+
+    if (existing && existing.length > 0) {
+        await supabaseClient.from("likes").delete().eq("id", existing[0].id);
+    } else {
+        await supabaseClient.from("likes").insert([{ user_email: user.email, item_id: itemId, comment_id: commentId }]);
+        if (ownerEmail && ownerEmail !== user.email) {
+            dbAddNotification(ownerEmail, `${user.name} liked your ${commentId ? 'reply' : 'post'}.`, 'info');
+        }
+    }
+};
 
 /* ════════════════════════════════════════════════════════
    DB: ITEMS
@@ -272,7 +305,7 @@ async function dbInsertItem(item) {
     const { error } = await supabaseClient.from("items").insert([{
         id: item.id, name: item.name, category: item.category, item_type: item.itemType,
         description: item.description, location: item.location, date: item.date,
-        contact: item.contact, status: "Approved",
+        contact: item.contact, owner_email: item.ownerEmail, status: item.status || "Approved",
         image_url: item.imageUrl
     }]);
     if (error) throw error;
@@ -612,29 +645,33 @@ function _buildImgHtml(imageUrl, name) {
     </div>`;
 }
 
-function renderItemCard(item, actionsHtml = "") {
+function renderItemCard(item, actionsHtml = "", likes = []) {
     // 1. Smart Name Filter
     let authorName = item.contact || "Member";
     
     if (authorName.toLowerCase().includes("admin")) {
-        authorName = "Admin"; // Forces all admin variations to just "Admin"
+        authorName = "Admin";
     } else if (authorName.includes("@")) {
-        authorName = authorName.split("@")[0]; // Converts "rueljr@gmail.com" to "rueljr"
+        authorName = authorName.split("@")[0];
     }
 
     const avatarLetter = authorName.slice(0, 1).toUpperCase();
+
+    // Calculate Likes (Safeguard against undefined likes array)
+    const safeLikes = likes || [];
+    const itemLikes = safeLikes.filter(l => l.item_id === item.id && !l.comment_id);
+    const hasLiked = itemLikes.some(l => l.user_email === getCurrentUser()?.email);
+    const likeIcon = hasLiked ? 'ph-heart-fill' : 'ph-heart';
+    const likeColor = hasLiked ? 'color: var(--red);' : 'color: var(--text-secondary);';
 
     return `
     <article class="card item-card" data-item-type="${esc(item.category||"")}" data-name="${esc((item.name||"").toLowerCase())}">
         <div class="item-header">
             <div style="display:flex; gap:8px; align-items: center; flex-wrap: wrap;">
-                
                 <div style="display:flex; align-items:center; gap:6px; margin-right: 4px;">
                     <div class="profile-avatar" style="width:26px; height:26px; font-size:0.75rem; border-radius:6px; background: var(--bg-raised); border: 1px solid var(--border); color: var(--accent);">${esc(avatarLetter)}</div>
-                    
                     <span style="font-family: var(--font-display); font-size: 0.95rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em;">${esc(authorName)}</span>
                 </div>
-                
                 ${categoryTag(item.category)}
                 ${statusTag(item.status || "Approved")}
             </div>
@@ -646,6 +683,13 @@ function renderItemCard(item, actionsHtml = "") {
         </div>
 
         ${_buildImgHtml(item.imageUrl, item.name)}
+
+        <div style="padding: 0 20px; display: flex; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
+            <button class="button sm" style="background:transparent; border:none; padding:4px 8px; ${likeColor}" 
+                    onclick="toggleLike('${item.id}', null, '${item.ownerEmail || item.contact}')">
+                <i class="ph ${likeIcon}" style="font-size:1.2rem;"></i> <span style="font-size:0.85rem; margin-left:4px;">${itemLikes.length || 'Like'}</span>
+            </button>
+        </div>
 
         <div class="card-content-footer">
             ${actionsHtml}
@@ -958,9 +1002,11 @@ async function renderAvailableItems(user) {
     const listEl = document.getElementById("itemsList");
     if (listEl) listEl.innerHTML = loadingState("Loading posts…");
     try {
-        const items    = await dbGetItems();
-        const comments = await dbGetComments();
-        _renderAvailableItems(items, comments, user);
+        // ADDED dbGetLikes
+        const [items, comments, likes] = await Promise.all([
+            dbGetItems(), dbGetComments(), dbGetLikes()
+        ]);
+        _renderAvailableItems(items, comments, likes, user); // Pass likes
         setTimeout(injectTTSButtons, 200);
     } catch (err) {
         console.error(err);
@@ -968,7 +1014,8 @@ async function renderAvailableItems(user) {
     }
 }
 
-function _renderAvailableItems(items, comments, user) {
+// Update signature to accept likes
+function _renderAvailableItems(items, comments, likes, user) {
     const approved = items.filter(i => i.status === "Approved");
     const countEl  = document.getElementById("itemsCountLabel");
     const listEl   = document.getElementById("itemsList");
@@ -977,29 +1024,8 @@ function _renderAvailableItems(items, comments, user) {
     if (!listEl) return;
 
     listEl.innerHTML = approved.length
-        ? approved.map(item => renderItemCard(item, generateCommentSection(item, comments))).join("")
+        ? approved.map(item => renderItemCard(item, generateCommentSection(item, comments), likes)).join("") // Pass likes to renderItemCard
         : emptyState("No posts yet. Use the + button to share something.");
-
-    // Submit comment on button click
-    listEl.querySelectorAll(".comment-submit-btn").forEach(btn => {
-        btn.addEventListener("click", async () => {
-            const inputEl = document.getElementById(`comment-input-${btn.dataset.id}`);
-            if (inputEl) await handleComment(btn.dataset.id, inputEl.value, user);
-        });
-    });
-
-    // Submit comment on Enter key
-    listEl.querySelectorAll(".comment-input").forEach(input => {
-        const itemId = input.id.replace("comment-input-", "");
-        input.addEventListener("keydown", async e => {
-            if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                await handleComment(itemId, input.value, user);
-            }
-        });
-    });
-
-    filterMemberItems();
 }
 
 function _commentCountLabel(itemId, comments) {
@@ -1394,26 +1420,16 @@ async function renderAdminDashboard() {
             );
         }
         if (approvedEl) {
-            // Added: fetch comments first so they can be injected into the dashboard view
-            const comments = await dbGetComments(); 
+            // Fetch comments AND likes
+            const [comments, likes] = await Promise.all([dbGetComments(), dbGetLikes()]); 
             
             approvedEl.innerHTML = items.length
                 ? items.map(i => {
-                    // Inject the comment section here just like in the Manage Posts tab
                     const commentHtml = generateCommentSection(i, comments);
-                    return renderItemCard(i, commentHtml); 
+                    return renderItemCard(i, commentHtml, likes); // Pass likes here
                 }).join("")
                 : emptyState("No live posts yet.");
-
-            // Re-bind the comment submit events for the dashboard view
-            approvedEl.querySelectorAll(".comment-submit-btn").forEach(btn => {
-                btn.onclick = () => {
-                    const input = document.getElementById(`comment-input-${btn.dataset.id}`);
-                    handleComment(btn.dataset.id, input.value, getCurrentUser());
-                };
-            });
-        }
-
+        }    
         const bell  = document.getElementById("notificationBell");
         const modal = document.getElementById("requestModal");
         if (bell && modal) {
@@ -2029,7 +2045,8 @@ function initAdminRequestForm() {
                     description: description, 
                     location: "UMak Campus", 
                     date: new Date().toLocaleDateString(), 
-                    contact: user.name, // <--- NEW: Replaced ADMIN_EMAIL with user.name
+                    contact: user.name, 
+                    ownerEmail: user.email, // <-- ADD THIS LINE
                     imageUrl: imageUrl 
                 });
 
@@ -2464,18 +2481,31 @@ async function renderResolutions() {
    GLOBAL REALTIME NOTIFICATIONS
    ══════════════════════════════════════════════════════════ */
 function startRealtimeNotifications(user, isAdmin) {
+    supabaseClient.channel('custom-notifications')
     if (isAdmin) {
         // ADMIN: Listen for brand new requests submitted by members
-        supabaseClient.channel('admin-global-notifs')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'requests' }, payload => {
-                showToast(`New item requested: ${payload.new.name}`, "info");
-                
-                // If the admin is currently on the dashboard, refresh the lists automatically
-                if (typeof renderAdminDashboard === "function") {
-                    renderAdminDashboard();
-                }
-            })
-            .subscribe();
+    supabaseClient.channel('admin-global-notifs')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'requests' }, payload => {
+            showToast(`New item requested: ${payload.new.name}`, "info");
+
+            // If the admin is currently on the dashboard, refresh the lists automatically
+            if (typeof renderAdminDashboard === "function") {
+                renderAdminDashboard();
+            }
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_email=eq.${user.email}` }, payload => {
+            showToast(payload.new.text, payload.new.type === 'error' ? 'error' : 'info');
+            fetchAndRenderNotifications(); // Instantly update the bell icon and dropdown
+
+            // Optional: play a soft notification sound
+            // new Audio('notify.mp3').play().catch(e => {});
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'likes' }, payload => {
+            // Soft refresh feeds if a like happens so the counters update
+            if (document.getElementById('itemsList')) renderAvailableItems(getCurrentUser());
+            if (document.getElementById('approvedItems')) renderAdminDashboard();
+        })
+        .subscribe();
     } else {
         // Helper to show/hide the Active Chat sidebar link without a full page reload
     function refreshChatLink() {

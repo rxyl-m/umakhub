@@ -477,6 +477,39 @@ textarea { resize: vertical; min-height: 100px; }
 .form-actions { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
 .error-message { color: #fca5a5; font-size: 0.82rem; margin-top: 10px; padding: 9px 12px; background: var(--red-glow); border: 1px solid rgba(225,29,72,0.22); border-radius: var(--radius); }
 .success-message { color: #6ee7b7; font-size: 0.82rem; margin-top: 10px; padding: 9px 12px; background: rgba(13,148,136,0.09); border: 1px solid rgba(13,148,136,0.22); border-radius: var(--radius); }
+/* 1. Make the container relative so the sliding background stays inside it */
+.auth-tabs { 
+  position: relative;
+  z-index: 1;
+  display: flex; gap: 3px; background: var(--bg-raised); border: 1px solid var(--border); border-radius: var(--radius-full); padding: 3px; margin-bottom: 14px; 
+}
+
+/* 2. Create the blue sliding background */
+.auth-tabs::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  bottom: 3px;
+  width: calc(50% - 4.5px); /* Perfectly sizes it to match exactly one button */
+  background: linear-gradient(135deg, var(--iac-bright), var(--iac-blue));
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 9px var(--accent-glow);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: -1; /* Pushes it behind the text */
+}
+
+/* 3. Slide the background to the right when "Sign Up" is clicked */
+.auth-tabs:has(.auth-tab[data-tab="signup"].active)::before {
+  transform: translateX(calc(100% + 3px)); /* Moves it by its own width plus the gap */
+}
+
+/* 4. Remove the static background from the active tab, leaving only the text color change */
+.auth-tab.active { 
+  background: transparent; 
+  color: white; 
+  box-shadow: none; 
+}
 
 /* ══════════════════════════════════════════════════════════
    PASSWORD STRENGTH METER
