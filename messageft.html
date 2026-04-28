@@ -158,7 +158,6 @@ document.getElementById('chatUserName').textContent = targetName;
 document.getElementById('chatUserEmail').textContent = targetEmail;
 document.getElementById('backToPortal').href = isAdmin ? "adminpage.html" : "memberpage.html";
 
-// Fix: use the actual IDs that exist in the sidebar HTML
 const memberNameEl   = document.getElementById('memberName');
 const memberAvatarEl = document.getElementById('memberAvatar');
 if (memberNameEl)   memberNameEl.textContent   = user.name;
@@ -178,15 +177,16 @@ if (endChatBtnMobile) {
 const chatBox = document.getElementById("chatBox");
 let chatChannel;
 
-function renderBubble(content, isMe) {
-    // Create a wrapper to hold both the name and the bubble
+// ─── FIX 1: renderBubble now accepts a timestamp parameter ───────────────────
+// Previously used new Date() always, so history messages showed the wrong time.
+// Now uses the actual created_at from the database row when available.
+function renderBubble(content, isMe, timestamp) {
     const wrapper = document.createElement("div");
     wrapper.style.display = "flex";
     wrapper.style.flexDirection = "column";
     wrapper.style.alignItems = isMe ? "flex-end" : "flex-start";
     wrapper.style.marginBottom = "8px";
 
-    // Create the small name label
     const senderLabel = document.createElement("span");
     senderLabel.style.fontSize = "0.7rem";
     senderLabel.style.color = "var(--text-muted)";
@@ -194,14 +194,14 @@ function renderBubble(content, isMe) {
     senderLabel.style.padding = "0 4px";
     senderLabel.textContent = isMe ? "You" : targetName;
 
-    // Create the actual bubble
     const div = document.createElement("div");
     div.className = `bubble ${isMe ? 'mine' : 'theirs'}`;
     div.textContent = content;
-    const now = new Date();
-    div.setAttribute('data-time', now.getHours() + ":" + String(now.getMinutes()).padStart(2, '0'));
 
-    // Assemble and inject
+    // Use the real timestamp from DB, fallback to now only for optimistic (just-sent) bubbles
+    const ts = timestamp ? new Date(timestamp) : new Date();
+    div.setAttribute('data-time', ts.getHours() + ":" + String(ts.getMinutes()).padStart(2, '0'));
+
     wrapper.appendChild(senderLabel);
     wrapper.appendChild(div);
 
@@ -211,32 +211,45 @@ function renderBubble(content, isMe) {
 
 async function initChat() {
     const history = await dbGetMessages(user.email, targetEmail);
-    history.forEach(msg => renderBubble(msg.content, msg.sender_email === user.email));
+    // ─── FIX 1 applied: pass msg.created_at so history shows correct times ───
+    history.forEach(msg => renderBubble(msg.content, msg.sender_email === user.email, msg.created_at));
 
-    chatChannel = supabaseClient.channel('chat-room').on('postgres_changes', { 
-        event: 'INSERT', schema: 'public', table: 'messages' 
-    }, payload => {
-        if ((payload.new.sender_email === targetEmail && payload.new.receiver_email === user.email)) {
-            renderBubble(payload.new.content, false);
-        }
-    }).on('broadcast', { event: 'typing' }, payload => {
-        const indicator = document.getElementById('typingIndicator');
-        if (payload.payload.email === targetEmail) {
-            indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
-        }
-    }).subscribe();
+    // ─── FIX 2: unique channel name per conversation ─────────────────────────
+    // Previously hardcoded 'chat-room' caused collisions if admin had
+    // multiple chat tabs open with different users at the same time.
+    const channelName = `chat-${[user.email, targetEmail].sort().join('-')}`;
+
+    chatChannel = supabaseClient.channel(channelName)
+        .on('postgres_changes', { 
+            event: 'INSERT', schema: 'public', table: 'messages' 
+        }, payload => {
+            // Only render bubbles from the OTHER person — our own messages are
+            // already rendered optimistically on submit.
+            if (payload.new.sender_email === targetEmail && payload.new.receiver_email === user.email) {
+                // ─── FIX 1 applied: use real timestamp from realtime payload ──
+                renderBubble(payload.new.content, false, payload.new.created_at);
+            }
+        })
+        .on('broadcast', { event: 'typing' }, payload => {
+            const indicator = document.getElementById('typingIndicator');
+            if (payload.payload.email === targetEmail) {
+                indicator.textContent = payload.payload.isTyping ? `${targetName} is typing...` : '';
+            }
+        })
+        .subscribe();
 
     document.getElementById('chatForm').onsubmit = async (e) => {
         e.preventDefault();
         const input = document.getElementById('chatMsgInput');
         const content = input.value.trim();
         if (!content) return;
+        // Render optimistically (no timestamp = will use current time, which is correct for a just-sent message)
         renderBubble(content, true);
-        input.value = ""; 
+        input.value = "";
         await dbSendMessage(user.email, targetEmail, content);
     };
 
-    // Typing Logic
+    // Typing indicator broadcast
     let typingTimeout;
     document.getElementById('chatMsgInput').addEventListener('input', () => {
         chatChannel.send({ type: 'broadcast', event: 'typing', payload: { email: user.email, isTyping: true } });
@@ -246,60 +259,48 @@ async function initChat() {
         }, 2000);
     });
 }
+
 document.getElementById('endChatForm').onsubmit = async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
-        if (submitBtn) {
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="ph ph-circle-notch"></i> Archiving...';
-        }
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ph ph-circle-notch"></i> Archiving...';
+    }
     const conclusion = document.getElementById('chatConclusion').value;
-    const history = await dbGetMessages(user.email, targetEmail); //
+    const history = await dbGetMessages(user.email, targetEmail);
     const now = new Date();
 
     const archiveData = {
-        user_email: isAdmin ? targetEmail : user.email, //
+        user_email: isAdmin ? targetEmail : user.email,
         admin_email: isAdmin ? user.email : "admin@umak.edu.ph",
         action_type: "Concluded Chat",
         meeting_date: now.toLocaleDateString(),
         meeting_time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         location: "Virtual Chat Hub",
         chat_history: history,
-        conclusion: conclusion //
+        conclusion: conclusion
     };
 
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Archiving...";
-    }
-
     try {
-        // 1. Save to resolutions table
         const { error: insertError } = await supabaseClient.from('resolutions').insert([archiveData]);
         if (insertError) throw insertError;
 
-        // 2. Clear current active messages
-        await dbDeleteMessages(user.email, targetEmail); //
+        await dbDeleteMessages(user.email, targetEmail);
 
-        // 3. Mark the chat request as resolved
         await supabaseClient.from('chat_requests')
                             .update({ status: 'resolved' })
-                            .eq('user_email', isAdmin ? targetEmail : user.email); //
+                            .eq('user_email', isAdmin ? targetEmail : user.email);
 
         showToast("Conversation archived successfully!");
 
-        // PAUSE: This gives you time to see the success message before redirecting
         setTimeout(() => {
             window.location.href = isAdmin ? "adminpage.html" : "memberpage.html";
         }, 2000);
 
     } catch (err) {
         console.error("DEBUGGER - SQL ERROR:", err);
-        
-        // CRITICAL: We DO NOT redirect here. 
-        // This keeps you on the page so you can read the error in the red toast.
         showToast("Database Error: " + (err.message || "Could not save log"), "error");
-        
         if (submitBtn) {
             submitBtn.disabled = false;
             submitBtn.innerHTML = "Confirm & Archive";
@@ -331,7 +332,6 @@ initChat();
             }, 0);
         });
     }
-    // Close sidebar when navigating away via nav links
     document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
         l.addEventListener('click', closeSidebar);
     });
