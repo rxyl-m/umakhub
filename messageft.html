@@ -105,6 +105,11 @@
                 <h1 id="chatUserName">Loading...</h1>
                 <p id="chatUserEmail" class="section-note"></p>
             </div>
+            <div class="header-actions">
+                <button id="endChatBtnDesktop" class="button danger" onclick="document.getElementById('endChatModal').classList.remove('hidden')">
+                    <i class="ph ph-stop-circle"></i> End Chat
+                </button>
+            </div>
         </header>
 
         <div class="chat-container">
@@ -162,6 +167,10 @@ const memberNameEl   = document.getElementById('memberName');
 const memberAvatarEl = document.getElementById('memberAvatar');
 if (memberNameEl)   memberNameEl.textContent   = user.name;
 if (memberAvatarEl) memberAvatarEl.textContent = (user.name || 'U').slice(0, 2).toUpperCase();
+
+// ─── FIX: Wire up logout button — was missing on this page ───────────────────
+const logoutBtnEl = document.getElementById('logoutBtn');
+if (logoutBtnEl) logoutBtnEl.onclick = logout;
 
 // Also update mobile header subtitle with who we're chatting to
 const chatSubtitle = document.getElementById('chatSubtitleMobile');
