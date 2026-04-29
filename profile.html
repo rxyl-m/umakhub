@@ -11,7 +11,10 @@
 <body class="page page-profile" data-page="profile">
 <div class="app-shell">
     <div class="layout">
-        
+
+        <!-- Mobile sidebar backdrop overlay -->
+        <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
         <div class="mobile-header">
             <div class="brand-panel" style="margin-bottom:0;padding:0;">
                 <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogo">
@@ -327,7 +330,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     let user = getCurrentUser();
     if (!user) { window.location.href = "login.html"; return; }
 
-    const isSystemAdmin = user.email === ADMIN_EMAIL;
+    const isSystemAdmin = user.role === 'admin';
     const returnUrl = user.role === 'admin' ? 'adminpage.html' : 'memberpage.html';
     document.getElementById('backToPortalBtn').href = returnUrl;
 
@@ -564,6 +567,32 @@ document.addEventListener("DOMContentLoaded", async () => {
         finally { btn.disabled = false; btn.innerHTML = 'Change Password'; }
     });
 });
+</script>
+<script>
+/* ── Mobile Sidebar Overlay Sync ── */
+(function() {
+  const overlay = document.getElementById('sidebarOverlay');
+  const sidebar = document.getElementById('appSidebar');
+  const menuBtn = document.getElementById('mobileMenuBtn');
+  const menuIcon = document.getElementById('menuIcon');
+  if (!overlay || !sidebar) return;
+  const close = () => {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    if (menuIcon) menuIcon.className = 'ph ph-list';
+  };
+  overlay.addEventListener('click', close);
+  if (menuBtn) {
+    menuBtn.addEventListener('click', () => {
+      setTimeout(() => {
+        overlay.classList.toggle('active', sidebar.classList.contains('open'));
+      }, 0);
+    });
+  }
+  document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
+    l.addEventListener('click', () => overlay.classList.remove('active'));
+  });
+})();
 </script>
 </body>
 </html>

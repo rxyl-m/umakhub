@@ -930,8 +930,15 @@ let _memberCatFilter = "all";
 
 async function initMemberPage() {
     applyTheme();
-    const user = ensureLogin("member");
+    let user = ensureLogin("member");
     if (!user) return;
+
+    // Refresh user data from DB so the sidebar always shows the latest name/avatar
+    try {
+        const { data: freshData } = await supabaseClient
+            .from('users').select('*').eq('email', user.email).single();
+        if (freshData) { user = { ...user, ...freshData }; setCurrentUser(user); }
+    } catch (e) { console.warn("Could not refresh member profile:", e); }
 
     async function updateChatLinkVisibility(user) {
         const chatLink = document.getElementById("activeChatLink");
@@ -1360,9 +1367,20 @@ function initRequestForm() {
    ════════════════════════════════════════════════════════ */
 function initAdminPage() {
     applyTheme();
-    const user = ensureLogin("admin");
+    let user = ensureLogin("admin");
     if (!user) return;
     document.getElementById("logoutBtn").onclick = logout;
+
+    // Refresh user data from DB so the sidebar always shows the latest name/avatar
+    supabaseClient.from('users').select('*').eq('email', user.email).single()
+        .then(({ data: freshData }) => {
+            if (freshData) { user = { ...user, ...freshData }; setCurrentUser(user); }
+            const avatar = document.getElementById("adminAvatarText");
+            const name   = document.getElementById("adminNameText");
+            if (avatar) avatar.textContent = (user.name || "SA").slice(0,2).toUpperCase();
+            if (name)   name.textContent   = user.name || "System Admin";
+        })
+        .catch(e => console.warn("Could not refresh admin profile:", e));
 
     const avatar = document.getElementById("adminAvatarText");
     const name   = document.getElementById("adminNameText");
