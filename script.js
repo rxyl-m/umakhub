@@ -1,16 +1,19 @@
 ﻿/* =========================================================
-   iAcademy Lost & Found — script.js  (Merged & Upgraded)
-   Features: Admin power granting, strong password policy,
-             text-to-voice, notifications, dark/light mode,
-             terms acceptance, admin approval workflow
+   UMak Hub — script.js
+   Features: Role-based admin system (DB-driven), strong
+             password policy, text-to-voice, notifications,
+             dark/light mode, terms acceptance, admin
+             approval workflow
    ========================================================= */
 
-const ADMIN_EMAIL      = "admin@umak.edu.ph";
-const ADMIN_PASSWORD   = "onlyadmincanaccessthis";
-const STORAGE_USER     = "lf_user";
-const STORAGE_ACTIVITY = "lf_activity";
-const STORAGE_THEME    = "lf_theme";
-const STORAGE_NOTIFS   = "lf_notifications";
+const STORAGE_USER     = "umak_user";
+const STORAGE_ACTIVITY = "umak_activity";
+const STORAGE_THEME    = "umak_theme";
+const STORAGE_NOTIFS   = "umak_notifications";
+
+/* ── Admin email cache (populated on user load, used to
+   badge admin comments without a per-comment DB lookup) ── */
+let _adminEmailsCache = new Set();
 
 /* ════════════════════════════════════════════════════════
    THEME (dark / light / logo swap)
@@ -23,7 +26,7 @@ function applyTheme() {
         icon.className = isLight ? 'ph ph-sun theme-icon' : 'ph ph-moon theme-icon';
     });
     document.querySelectorAll('.brand-logo').forEach(img => {
-        img.src = isLight ? 'lnflogo.png' : 'lnflogo.png';
+        img.src = isLight ? 'umaklogo.png' : 'umaklogo.png';
     });
 }
 
@@ -805,8 +808,8 @@ function initLogin() {
             const p = document.getElementById("authSubheading");
             if (h) h.textContent = isSignIn ? "Welcome back" : "Create account";
             if (p) p.textContent = isSignIn
-                ? "Sign in to access the Lost & Found system."
-                : "Register to browse and post items.";
+                ? "Sign in to access the UMak Hub campus network."
+                : "Register to join the UMak campus community.";
         });
     });
 
@@ -818,13 +821,6 @@ function initLogin() {
         const password  = document.getElementById("password").value;
         if (errorEl) { errorEl.textContent = ""; errorEl.className = ""; }
         if (!email || !password) { showMsg(errorEl, "Please enter email and password.", "error"); return; }
-
-        if (email.toLowerCase() === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-            setCurrentUser({ email, name: "System Admin", role: "admin" });
-            logActivity("login", "Admin signed in");
-            window.location.href = "adminpage.html";
-            return;
-        }
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Signing in…";
@@ -868,7 +864,6 @@ function initLogin() {
         if (!emailLower.endsWith('@gmail.com') && !emailLower.endsWith('@umak.edu.ph')) {
             showMsg(errEl, "Please use a valid @gmail.com or @umak.edu.ph email address.", "error"); return;
         }
-        if (email.toLowerCase() === ADMIN_EMAIL) { showMsg(errEl, "That email is reserved.", "error"); return; }
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Creating account…";
@@ -878,7 +873,7 @@ function initLogin() {
             const newUser = { email, name:`${firstName} ${lastName}`, password, role:"member" };
             await dbInsertUser(newUser);
             logActivity("signup", `${newUser.name} created an account`);
-            addNotification(`New member registered: ${newUser.name}`, 'info');
+            dbAddNotification(newUser.email, `Welcome to UMak Hub, ${firstName}!`, 'info');
             isLoginDirty = false;
             document.getElementById("signupForm").reset();
             showMsg(succEl, "Account created! You can now sign in.", "success");
@@ -912,17 +907,12 @@ async function initMemberPage() {
         const chatLink = document.getElementById("activeChatLink");
         if (!chatLink) return;
         try {
-            const { data: requests } = await supabaseClient
-                .from('chat_requests')
-                .select('status')
-                .eq('user_email', user.email)
-                .eq('status', 'approved');
-            const messages = await dbGetMessages(user.email, "admin@umak.edu.ph");
-            if ((requests && requests.length > 0) || (messages && messages.length > 0)) {
-                chatLink.classList.remove("hidden");
-            } else {
-                chatLink.classList.add("hidden");
-            }
+            const [{ data: requests }, { data: msgs }] = await Promise.all([
+                supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
+                supabaseClient.from('messages').select('id').or(`sender_email.eq.${user.email},receiver_email.eq.${user.email}`).limit(1)
+            ]);
+            const visible = (requests && requests.length > 0) || (msgs && msgs.length > 0);
+            chatLink.classList.toggle("hidden", !visible);
         } catch (e) {
             console.error("Error checking chat visibility:", e);
         }
@@ -1050,7 +1040,7 @@ function _renderCommentItem(c) {
            </button>` 
         : "";
 
-    const isSystemAdmin = c.user_email === ADMIN_EMAIL || c.user_name === "System Admin";
+    const isSystemAdmin = _adminEmailsCache.has(c.user_email) || c.user_name?.toLowerCase() === 'admin';
     const authorHtml = isSystemAdmin
         ? `<span style="display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:0.82rem;background:rgba(225,29,72,0.12);color:#e11d48;padding:2px 8px;border-radius:99px;border:1px solid rgba(225,29,72,0.3);"><i class="ph ph-shield-star"></i> Admin</span>`
         : `<span style="font-weight:600;font-size:0.82rem;color:var(--accent);">${esc(c.user_name)}</span>`;
@@ -1228,23 +1218,12 @@ function filterMemberItems() {
     }
 }
 
-/* ════════════════════════════════════════════════════════
-   REQUEST FORM
-   ════════════════════════════════════════════════════════ */
-function selectType(type) {
-    document.querySelectorAll(".type-choice").forEach(btn => btn.classList.remove("active-lost", "active-found"));
-    const btn = type === "Lost" ? document.getElementById("typeLost") : document.getElementById("typeFound");
-    if (btn) btn.classList.add(type === "Lost" ? "active-lost" : "active-found");
-    const catEl = document.getElementById("category");
-    if (catEl) catEl.value = type;
-}
-
 /* ══════════════════════════════════════════════════════════
    REQUEST FORM (SOCIAL POST)
    ══════════════════════════════════════════════════════════ */
 function selectType(type) {
     document.querySelectorAll(".type-choice").forEach(btn => {
-        btn.classList.remove("active-lost", "active-found", "active");
+        btn.classList.remove("active-showcase", "active-question", "active-general", "active");
         btn.style.borderColor = "var(--border)";
         btn.style.background = "var(--bg-glass)";
     });
@@ -1560,9 +1539,10 @@ function openEditModal(id) {
     document.getElementById("editItemName").value     = item.name;
     document.getElementById("editItemCategory").value = item.category;
     document.getElementById("editItemDesc").value     = item.description;
-    document.getElementById("editItemLocation").value = item.location;
-    document.getElementById("editItemStatus").value   = item.status;
-    document.getElementById("editItemContact").value  = item.contact;
+    document.getElementById("editItemLocation").value = item.location || "";
+    document.getElementById("editItemContact").value  = item.contact || "";
+    const statusEl = document.getElementById("editItemStatus");
+    if (statusEl) statusEl.value = item.status;
     document.getElementById("editItemForm").oninput   = () => _isEditDirty = true;
     const m = document.getElementById("editModal");
     m.classList.remove("hidden"); m.setAttribute("aria-hidden", "false");
@@ -1576,9 +1556,10 @@ async function saveItemEdit() {
             category:    document.getElementById("editItemCategory").value,
             description: document.getElementById("editItemDesc").value.trim(),
             location:    document.getElementById("editItemLocation").value.trim(),
-            status:      document.getElementById("editItemStatus").value,
             contact:     document.getElementById("editItemContact").value.trim(),
         };
+        const statusEl = document.getElementById("editItemStatus");
+        if (statusEl) fields.status = statusEl.value;
         try {
             await dbUpdateItem(id, fields);
             const prev = _cachedItems.find(i => i.id === id);
@@ -1662,10 +1643,10 @@ async function renderUsersSection() {
 
     try {
         const currentUser = getCurrentUser();
-        // Identify if the person logged in is the original Master Admin
-        const isMasterAdmin = currentUser.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
-
         const [users, requests, claims] = await Promise.all([dbGetUsers(), dbGetRequests(), dbGetClaims()]);
+
+        // Populate the global admin email cache so comment badges work everywhere
+        _adminEmailsCache = new Set(users.filter(u => u.role === 'admin').map(u => u.email));
 
         function applyFilter() {
             const q        = (searchEl?.value || "").toLowerCase();
@@ -1680,33 +1661,25 @@ async function renderUsersSection() {
                 const joinDate   = u.joinedAt ? new Date(u.joinedAt).toLocaleDateString() : "Unknown";
                 
                 const isTargetAdmin = u.role === "admin" || u.role === "Admin";
-                const isTargetMaster = u.email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+                const isSelf        = u.email.toLowerCase() === currentUser.email.toLowerCase();
                 
                 const roleBadge  = isTargetAdmin
                     ? `<span class="admin-badge"><i class="ph ph-shield-star"></i> Admin</span>`
                     : `<span class="tag tag-approved">● Member</span>`;
                 
+                // Admins can grant/revoke others, but cannot modify their own role or remove other admins
                 let roleBtn = "";
-                let removeBtn = `<button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-trash"></i> Remove</button>`;
+                let removeBtn = !isSelf
+                    ? `<button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-trash"></i> Remove</button>`
+                    : "";
 
-                // ── SECURITY LOGIC ──
-                if (isMasterAdmin) {
-                    if (isTargetMaster) {
-                        roleBtn = `<span style="font-size: 0.75rem; color: var(--text-muted); font-weight: bold;">MASTER ADMIN</span>`;
-                        removeBtn = ""; // Master cannot be removed
-                    } else {
-                        roleBtn = isTargetAdmin
-                            ? `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-slash"></i> Revoke Admin</button>`
-                            : `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-star"></i> Grant Admin</button>`;
-                    }
+                if (isSelf) {
+                    roleBtn = `<span style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;">YOUR ACCOUNT</span>`;
+                } else if (isTargetAdmin) {
+                    roleBtn = `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-slash"></i> Revoke Admin</button>`;
+                    removeBtn = ""; // Admins cannot remove other admins
                 } else {
-                    // Sub-admin viewing the list
-                    if (isTargetMaster) {
-                        removeBtn = ""; // Sub-admins cannot remove the master admin
-                    }
-                    if (isTargetAdmin && u.email !== currentUser.email) {
-                        removeBtn = ""; // Sub-admins cannot remove other admins
-                    }
+                    roleBtn = `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-star"></i> Grant Admin</button>`;
                 }
 
                 return `
@@ -1740,7 +1713,7 @@ async function renderUsersSection() {
                         try {
                             await dbUpdateUserRole(btn.dataset.email, "admin");
                             logActivity("admin_granted", `Admin powers granted to ${btn.dataset.name} (${btn.dataset.email})`);
-                            addNotification(`Admin powers granted to ${btn.dataset.name}.`, 'info');
+                            dbAddNotification(btn.dataset.email, `You have been granted Admin privileges on UMak Hub.`, 'info');
                             showToast(`${btn.dataset.name} is now an admin!`);
                             await renderUsersSection();
                         } catch (err) { console.error(err); showToast("Error updating role.", "error"); }
@@ -1912,10 +1885,10 @@ async function processRequest(id, action, cachedRequests = null) {
                     imageUrl: req.imageUrl
                 });
                 logActivity("post_approved", `"${req.name}" by ${req.requestedBy} was approved`);
-                addNotification(`Post request for "${req.name}" approved.`, 'info');
+                dbAddNotification(req.requestedBy, `Your post "${req.name}" was approved and is now live!`, 'info');
             } else {
                 logActivity("post_rejected", `"${req.name}" by ${req.requestedBy} was rejected`);
-                addNotification(`Post request for "${req.name}" rejected.`, 'info');
+                dbAddNotification(req.requestedBy, `Your post "${req.name}" was not approved.`, 'error');
             }
             await dbUpdateRequestStatus(id, isApprove ? "approved" : "rejected");
             closeModal(document.getElementById("requestModal"));
@@ -1939,10 +1912,10 @@ async function processClaim(id, action, cachedClaims = null, fromClaimsSection =
             if (isApprove) {
                 await dbUpdateItem(claim.itemId, { status: "Claimed" });
                 logActivity("claim_approved", `Claim on "${claim.name}" by ${claim.requestedBy} approved`);
-                addNotification(`Claim on "${claim.name}" has been approved.`, 'info');
+                dbAddNotification(claim.requestedBy, `Your claim on "${claim.name}" has been approved.`, 'info');
             } else {
                 logActivity("claim_rejected", `Claim on "${claim.name}" by ${claim.requestedBy} rejected`);
-                addNotification(`Claim on "${claim.name}" has been rejected.`, 'info');
+                dbAddNotification(claim.requestedBy, `Your claim on "${claim.name}" was not approved.`, 'error');
             }
             if (fromClaimsSection) await renderClaimsSection();
             else { closeModal(document.getElementById("requestModal")); await renderAdminDashboard(); }
@@ -1963,7 +1936,8 @@ function initAdminRequestForm() {
 
     const params  = new URLSearchParams(window.location.search);
     const urlType = params.get("type");
-    if (urlType === "Lost" || urlType === "Found") selectType(urlType);
+    if (urlType === "Showcase" || urlType === "Question" || urlType === "General") selectType(urlType);
+    else selectType("Showcase"); // default
 
     document.querySelectorAll(".type-choice").forEach(btn => btn.addEventListener("click", () => selectType(btn.dataset.type)));
 
@@ -2109,7 +2083,7 @@ function openProfileModal() {
     // Remove stale instance
     document.getElementById('profileModal')?.remove();
 
-    const isSystemAdmin = user.email === ADMIN_EMAIL;
+    const isSystemAdmin = user.role === 'admin';
     const initials   = (user.name || 'U').slice(0, 2).toUpperCase();
     const isAdmin    = user.role === 'admin';
     const roleColor  = isAdmin ? '#e11d48' : 'var(--iac-blue)';
@@ -2239,9 +2213,7 @@ async function saveProfileName() {
     if (btn) { btn.disabled = true; btn.innerHTML = "<i class='ph ph-circle-notch'></i>"; }
 
     try {
-        if (user.email !== ADMIN_EMAIL) {
-            await dbUpdateUserProfile(user.email, { name: newName });
-        }
+        await dbUpdateUserProfile(user.email, { name: newName });
         // Sync session
         setCurrentUser({ ...user, name: newName });
 
@@ -2481,7 +2453,6 @@ async function renderResolutions() {
    GLOBAL REALTIME NOTIFICATIONS
    ══════════════════════════════════════════════════════════ */
 function startRealtimeNotifications(user, isAdmin) {
-    supabaseClient.channel('custom-notifications')
     if (isAdmin) {
         // ADMIN: Listen for brand new requests submitted by members
     supabaseClient.channel('admin-global-notifs')
@@ -2517,8 +2488,8 @@ function startRealtimeNotifications(user, isAdmin) {
 
         Promise.all([
             supabaseClient.from('chat_requests').select('status').eq('user_email', user.email).eq('status', 'approved'),
-            dbGetMessages(user.email, "admin@umak.edu.ph")
-        ]).then(([{ data: reqs }, msgs]) => {
+            supabaseClient.from('messages').select('id').or(`sender_email.eq.${user.email},receiver_email.eq.${user.email}`).limit(1)
+        ]).then(([{ data: reqs }, { data: msgs }]) => {
             const visible = (reqs && reqs.length > 0) || (msgs && msgs.length > 0);
             chatLink.classList.toggle("hidden", !visible);
             

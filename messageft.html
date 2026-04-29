@@ -154,13 +154,54 @@ if (!user) window.location.href = "login.html";
 const isAdmin = user.role && user.role.toLowerCase() === "admin";
 const urlParams = new URLSearchParams(window.location.search);
 
-// Extract with safe fallbacks so it never renders "null"
-const targetEmail = isAdmin ? (urlParams.get('email') || "Unknown Email") : "admin@umak.edu.ph";
-const targetName = isAdmin ? (urlParams.get('name') || targetEmail.split('@')[0] || "Student Member") : "System Admin";
+// For admin: target is the member passed via URL params
+// For member: target is looked up from their messages/chat_requests (no hardcoded email)
+let targetEmail = isAdmin ? (urlParams.get('email') || "") : "";
+let targetName  = isAdmin ? (urlParams.get('name')  || targetEmail.split('@')[0] || "Student Member") : "Admin";
+
+async function resolveTargetForMember() {
+    if (isAdmin) return; // Admin already has target from URL
+    try {
+        // 1. Try to find the admin from existing messages
+        const { data: msgs } = await supabaseClient
+            .from('messages')
+            .select('sender_email, receiver_email')
+            .or(`sender_email.eq.${user.email},receiver_email.eq.${user.email}`)
+            .limit(1);
+        if (msgs && msgs.length > 0) {
+            const msg = msgs[0];
+            targetEmail = msg.sender_email === user.email ? msg.receiver_email : msg.sender_email;
+        }
+        // 2. Fallback: look up the admin who approved their chat request
+        if (!targetEmail) {
+            const { data: chatReq } = await supabaseClient
+                .from('chat_requests')
+                .select('admin_email')
+                .eq('user_email', user.email)
+                .in('status', ['approved', 'resolved'])
+                .order('created_at', { ascending: false })
+                .limit(1);
+            if (chatReq && chatReq.length > 0 && chatReq[0].admin_email) {
+                targetEmail = chatReq[0].admin_email;
+            }
+        }
+        // 3. Last resort: get any admin from users table
+        if (!targetEmail) {
+            const { data: admins } = await supabaseClient.from('users').select('email, name').eq('role', 'admin').limit(1);
+            if (admins && admins.length > 0) {
+                targetEmail = admins[0].email;
+                targetName  = admins[0].name || "Admin";
+            }
+        }
+    } catch(e) { console.error("Could not resolve admin target:", e); }
+
+    document.getElementById('chatUserName').textContent  = targetName;
+    document.getElementById('chatUserEmail').textContent = targetEmail;
+}
 
 // UI Initialization
-document.getElementById('chatUserName').textContent = targetName;
-document.getElementById('chatUserEmail').textContent = targetEmail;
+document.getElementById('chatUserName').textContent  = targetName;
+document.getElementById('chatUserEmail').textContent = isAdmin ? targetEmail : "Resolving...";
 document.getElementById('backToPortal').href = isAdmin ? "adminpage.html" : "memberpage.html";
 
 const memberNameEl   = document.getElementById('memberName');
@@ -282,7 +323,7 @@ document.getElementById('endChatForm').onsubmit = async (e) => {
 
     const archiveData = {
         user_email: isAdmin ? targetEmail : user.email,
-        admin_email: isAdmin ? user.email : "admin@umak.edu.ph",
+        admin_email: isAdmin ? user.email : targetEmail,
         action_type: "Concluded Chat",
         meeting_date: now.toLocaleDateString(),
         meeting_time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -317,7 +358,17 @@ document.getElementById('endChatForm').onsubmit = async (e) => {
     }
 };
 
-initChat();
+// Entry point: resolve target (for members), then start chat
+async function start() {
+    await resolveTargetForMember();
+    if (!targetEmail) {
+        document.getElementById('chatUserName').textContent = "No active chat";
+        document.getElementById('chatBox').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-muted);">No admin chat found. Please request a chat from the campus feed.</div>';
+        return;
+    }
+    initChat();
+}
+start();
 </script>
 
 <script>
