@@ -1769,7 +1769,7 @@ async function renderUsersSection() {
                     : `<span class="tag tag-approved">● Member</span>`;
                 
                 // 1. Define the exact email of your ultimate System Admin
-const isSystemAdmin = currentUser.email.toLowerCase() === "your.email@umak.edu.ph"; // <-- CHANGE THIS TO YOUR EMAIL!
+const isSystemAdmin = currentUser.email.toLowerCase() === "rueljrcatolos@gmail.com"; // <-- CHANGE THIS TO YOUR EMAIL!
 
 let roleBtn = "";
 let removeBtn = !isSelf
