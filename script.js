@@ -1768,20 +1768,33 @@ async function renderUsersSection() {
                     ? `<span class="admin-badge"><i class="ph ph-shield-star"></i> Admin</span>`
                     : `<span class="tag tag-approved">● Member</span>`;
                 
-                // Admins can grant/revoke others, but cannot modify their own role or remove other admins
-                let roleBtn = "";
-                let removeBtn = !isSelf
-                    ? `<button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-trash"></i> Remove</button>`
-                    : "";
+                // 1. Define the exact email of your ultimate System Admin
+const isSystemAdmin = currentUser.email.toLowerCase() === "your.email@umak.edu.ph"; // <-- CHANGE THIS TO YOUR EMAIL!
 
-                if (isSelf) {
-                    roleBtn = `<span style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;">YOUR ACCOUNT</span>`;
-                } else if (isTargetAdmin) {
-                    roleBtn = `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-slash"></i> Revoke Admin</button>`;
-                    removeBtn = ""; // Admins cannot remove other admins
-                } else {
-                    roleBtn = `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-star"></i> Grant Admin</button>`;
-                }
+let roleBtn = "";
+let removeBtn = !isSelf
+    ? `<button class="button danger sm remove-user-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-trash"></i> Remove</button>`
+    : "";
+
+if (isSelf) {
+    roleBtn = `<span style="font-size:0.75rem;color:var(--text-muted);font-weight:bold;">YOUR ACCOUNT</span>`;
+} else if (isSystemAdmin) {
+    // 2. ONLY the System Admin gets to see the Grant/Revoke buttons
+    if (isTargetAdmin) {
+        roleBtn = `<button class="button secondary sm revoke-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-slash"></i> Revoke Admin</button>`;
+        removeBtn = ""; // System admin shouldn't delete admins without revoking first
+    } else {
+        roleBtn = `<button class="button outline sm grant-admin-btn" data-email="${esc(u.email)}" data-name="${esc(u.name)}"><i class="ph ph-shield-star"></i> Grant Admin</button>`;
+    }
+} else {
+    // 3. Regular Admins just see who else is an admin, but get no buttons to change it
+    if (isTargetAdmin) {
+        roleBtn = `<span style="font-size:0.75rem;color:var(--accent);font-weight:bold;">ADMIN PARTNER</span>`;
+        removeBtn = ""; // Regular admins cannot remove other admins
+    } else {
+        roleBtn = ``; // Keep it clean for standard members
+    }
+}
 
                 return `
                 <article class="card item-card">
