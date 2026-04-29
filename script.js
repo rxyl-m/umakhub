@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    UMak Hub — script.js
    Features: Role-based admin system (DB-driven), strong
              password policy, text-to-voice, notifications,
@@ -2695,3 +2695,22 @@ async function renderDirectory() {
         listEl.innerHTML = emptyState("Failed to load directory.");
     }
 }
+
+/* ══════════════════════════════════════════════════════════
+   SPLASH SCREEN HANDLER
+   ══════════════════════════════════════════════════════════ */
+window.addEventListener("load", () => {
+    const splash = document.getElementById("appSplash");
+    if (splash) {
+        // A tiny 300ms delay ensures the animation is visible even on very fast connections,
+        // giving it that deliberate "App Booting" feel.
+        setTimeout(() => {
+            splash.classList.add("hidden-splash");
+            
+            // Remove it from the DOM completely after the CSS fade transition finishes
+            setTimeout(() => {
+                splash.remove();
+            }, 400); 
+        }, 300);
+    }
+});

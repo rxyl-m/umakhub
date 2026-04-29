@@ -1848,3 +1848,55 @@ input:focus, textarea:focus, select:focus {
     gap: 0 !important;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   APP SPLASH SCREEN
+   ══════════════════════════════════════════════════════════ */
+.app-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99999; /* Highest possible z-index to cover everything */
+    background: var(--bg-base); /* Automatically matches light/dark mode */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+/* Class added by JavaScript to trigger the fade-out */
+.app-splash.hidden-splash {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.splash-logo-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.splash-logo {
+    width: 90px;
+    height: 90px;
+    border-radius: 100%;
+    object-fit: cover;
+    /* The heartbeat pulse animation */
+    animation: splashPulse 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes splashPulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 204, 0, 0.5); /* UMak Gold Glow */
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 25px rgba(255, 204, 0, 0); /* Fades outward */
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
+    }
+}
