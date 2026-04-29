@@ -262,13 +262,14 @@
     btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
   }
 
-  /* ── Email domain hint (sign-up only) ── */
+/* ── Email domain hint (sign-up only) ── */
   const signupEmailEl = document.getElementById('signupEmail');
   if (signupEmailEl) {
     signupEmailEl.addEventListener('blur', () => {
       const v = signupEmailEl.value.trim();
-      if (v && !/@(gmail\.com|umak\.edu\.ph)$/.test(v)) {
-        signupEmailEl.setCustomValidity('Please use a @gmail.com or @umak.edu.ph email.');
+      // Regex updated to strictly require @umak.edu.ph at the end
+      if (v && !/@umak\.edu\.ph$/.test(v)) {
+        signupEmailEl.setCustomValidity('Please use your official @umak.edu.ph email.');
         signupEmailEl.reportValidity();
       } else {
         signupEmailEl.setCustomValidity('');

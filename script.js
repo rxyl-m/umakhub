@@ -920,13 +920,29 @@ function initLogin() {
         submitBtn.disabled = true;
         submitBtn.innerHTML = "<i class='ph ph-circle-notch'></i> Signing in…";
         try {
-            const found = await dbGetUserByEmail(email);
-            if (!found)                     { showMsg(errorEl, "No account found with that email. Please sign up first.", "error"); return; }
-            if (found.password !== password) { showMsg(errorEl, "Incorrect password.", "error"); return; }
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                // Check if they tried to log in without clicking the link in their email
+                if (error.message.includes("Email not confirmed")) {
+                    showMsg(errorEl, "Please check your inbox and verify your UMak email first!", "error");
+                } else {
+                    showMsg(errorEl, "Invalid email or password.", "error");
+                }
+                return;
+            }
+
+            // If login is successful, grab their details from Supabase's secure token
+            const userRole = data.user.user_metadata.role || "member";
+            const userName = data.user.user_metadata.name || "UMak Student";
+
+            setCurrentUser({ email: data.user.email, name: userName, role: userRole });
             isLoginDirty = false;
-            setCurrentUser({ email: found.email, name: found.name, role: found.role || "member" });
-            logActivity("login", `${found.name} signed in`);
-            window.location.href = found.role === "admin" ? "adminpage.html" : "memberpage.html";
+            logActivity("login", `${userName} signed in`);
+            window.location.href = userRole === "admin" ? "adminpage.html" : "memberpage.html";
         } catch (err) {
             showMsg(errorEl, "Could not connect. Please try again.", "error");
             console.error(err);
@@ -956,8 +972,8 @@ function initLogin() {
         if (password !== confirm)  { showMsg(errEl, "Passwords do not match.", "error"); return; }
         if (!termsOk)              { showMsg(errEl, "Please accept the Terms & Conditions before signing up.", "error"); return; }
         const emailLower = email.toLowerCase();
-        if (!emailLower.endsWith('@gmail.com') && !emailLower.endsWith('@umak.edu.ph')) {
-            showMsg(errEl, "Please use a valid @gmail.com or @umak.edu.ph email address.", "error"); return;
+        if (!emailLower.endsWith('@umak.edu.ph')) {
+            showMsg(errEl, "Please use a valid @umak.edu.ph email address.", "error"); return;
         }
 
         submitBtn.disabled = true;
@@ -965,10 +981,23 @@ function initLogin() {
         try {
             const existing = await dbGetUserByEmail(email);
             if (existing) { showMsg(errEl, "An account with that email already exists.", "error"); return; }
-            const newUser = { email, name:`${firstName} ${lastName}`, password, role:"member" };
-            await dbInsertUser(newUser);
-            logActivity("signup", `${newUser.name} created an account`);
-            dbAddNotification(newUser.email, `Welcome to UMak Hub, ${firstName}!`, 'info');
+            const { data, error } = await supabaseClient.auth.signUp({
+                email: email,
+                password: password,
+                options: {
+                    data: {
+                        name: `${firstName} ${lastName}`,
+                        role: "member"
+                    }
+                }
+            });
+
+            if (error) throw error;
+
+            // Update the success message to remind them about the email!
+            showMsg(succEl, "Account created! Please check your UMak email to verify before signing in.", "success");
+            logActivity("signup", `${firstName} ${lastName} created an account`);
+            dbAddNotification(email, `Welcome to UMak Hub, ${firstName}!`, 'info');
             isLoginDirty = false;
             document.getElementById("signupForm").reset();
             showMsg(succEl, "Account created! You can now sign in.", "success");
