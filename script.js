@@ -1536,7 +1536,6 @@ async function setupManageItemsUI(items, countEl, listEl) {
             
             // Add the full comment section (same as member page)
             const commentHtml = generateCommentSection(item, comments);
-            return renderItemCard(item, commentHtml + actions);
             return renderItemCard(item, commentHtml + actions, likes); 
         }).join("");
 
