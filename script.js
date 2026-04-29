@@ -276,23 +276,52 @@ async function dbGetLikes() {
     return data || [];
 }
 
-window.toggleLike = async function(itemId, commentId, ownerEmail) {
+window.toggleLike = async function(itemId, commentId, ownerEmail, btn) {
     const user = getCurrentUser();
     if (!user) return;
-    
-    let query = supabaseClient.from("likes").select("*").eq("user_email", user.email);
-    if (commentId) query = query.eq("comment_id", commentId);
-    else query = query.eq("item_id", itemId).is("comment_id", null);
 
-    const { data: existing } = await query;
+    // --- 1. OPTIMISTIC UI: Instantly change the heart and count ---
+    if (btn) {
+        const icon = btn.querySelector('i');
+        const countSpan = btn.querySelector('span');
+        let count = parseInt(countSpan.textContent) || 0;
+        const isLiked = icon.classList.contains('ph-heart-fill');
 
-    if (existing && existing.length > 0) {
-        await supabaseClient.from("likes").delete().eq("id", existing[0].id);
-    } else {
-        await supabaseClient.from("likes").insert([{ user_email: user.email, item_id: itemId, comment_id: commentId }]);
-        if (ownerEmail && ownerEmail !== user.email) {
-            dbAddNotification(ownerEmail, `${user.name} liked your ${commentId ? 'reply' : 'post'}.`, 'info');
+        if (isLiked) {
+            icon.classList.replace('ph-heart-fill', 'ph-heart');
+            btn.style.color = 'var(--text-secondary)';
+            count = Math.max(0, count - 1);
+            countSpan.textContent = count === 0 ? 'Like' : count;
+        } else {
+            icon.classList.replace('ph-heart', 'ph-heart-fill');
+            btn.style.color = 'var(--red)';
+            count++;
+            countSpan.textContent = count;
         }
+        btn.style.pointerEvents = 'none'; // Prevent double-clicking spam
+    }
+
+    // --- 2. BACKGROUND DATABASE SYNC ---
+    try {
+        let query = supabaseClient.from("likes").select("*").eq("user_email", user.email);
+        if (commentId) query = query.eq("comment_id", commentId);
+        else query = query.eq("item_id", itemId).is("comment_id", null);
+
+        const { data: existing } = await query;
+
+        if (existing && existing.length > 0) {
+            await supabaseClient.from("likes").delete().eq("id", existing[0].id);
+        } else {
+            await supabaseClient.from("likes").insert([{ user_email: user.email, item_id: itemId, comment_id: commentId }]);
+            if (ownerEmail && ownerEmail !== user.email) {
+                dbAddNotification(ownerEmail, `${user.name} liked your ${commentId ? 'reply' : 'post'}.`, 'info');
+            }
+        }
+    } catch (err) {
+        console.error("Like failed:", err);
+        showToast("Network error. Like not saved.", "error");
+    } finally {
+        if (btn) btn.style.pointerEvents = 'auto'; // Re-enable clicking
     }
 };
 
@@ -689,7 +718,7 @@ function renderItemCard(item, actionsHtml = "", likes = []) {
 
         <div style="padding: 0 20px; display: flex; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
             <button class="button sm" style="background:transparent; border:none; padding:4px 8px; ${likeColor}" 
-                    onclick="toggleLike('${item.id}', null, '${item.ownerEmail || item.contact}')">
+                    onclick="toggleLike('${item.id}', null, '${item.ownerEmail || item.contact}', this)">
                 <i class="ph ${likeIcon}" style="font-size:1.2rem;"></i> <span style="font-size:0.85rem; margin-left:4px;">${itemLikes.length || 'Like'}</span>
             </button>
         </div>
@@ -1469,7 +1498,8 @@ async function renderManageItems() {
 async function setupManageItemsUI(items, countEl, listEl) {
     // Fetch comments so admins can see and add to them
     const comments = await dbGetComments();
-    const requests = await dbGetRequests(); // Fetch pending items
+    const requests = await dbGetRequests();
+    const likes = await dbGetLikes();
 
     function applyFilter() {
         const search = (document.getElementById("itemSearch")?.value || "").toLowerCase();
@@ -1506,6 +1536,7 @@ async function setupManageItemsUI(items, countEl, listEl) {
             // Add the full comment section (same as member page)
             const commentHtml = generateCommentSection(item, comments);
             return renderItemCard(item, commentHtml + actions);
+            return renderItemCard(item, commentHtml + actions, likes); 
         }).join("");
 
         // Re-bind comment events for the admin
