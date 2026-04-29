@@ -1937,3 +1937,37 @@ body.light-mode .tag-pending  { color: #b45309; border-color: rgba(245, 158, 11,
 body.light-mode .tag-approved { color: #047857; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.15); }
 body.light-mode .tag-rejected { color: #334155; border-color: rgba(100, 116, 139, 0.4); background: rgba(100, 116, 139, 0.15); }
 body.light-mode .tag-claimed  { color: #1d4ed8; border-color: rgba(77, 130, 255, 0.4); }
+
+
+/* ══════════════════════════════════════════════════════════
+   STRICT HEADER ALIGNMENT FIX (Prevents Overflow)
+   ══════════════════════════════════════════════════════════ */
+/* 1. Tell the header it is legally allowed to wrap items to the next line */
+.page-header {
+    flex-wrap: wrap !important;
+}
+
+/* 2. Let the title area grow, but set a minimum width so it doesn't get crushed */
+.page-header > div:first-child {
+    flex: 1 1 auto;
+    min-width: 250px; 
+}
+
+/* 3. Remove 'flex-shrink: 0' so the right-side actions stay inside the box */
+.header-actions {
+    flex: 1 1 auto;
+    flex-shrink: 1 !important; 
+    max-width: 100%; 
+    justify-content: flex-end; /* Keeps them aligned to the right */
+}
+
+/* 4. Let the search bar shrink gracefully if things get tight */
+.header-actions .search-field {
+    flex: 1 1 auto;
+    min-width: 150px;
+}
+
+/* 5. Allow the filter tabs to wrap naturally if needed */
+.filter-tabs {
+    flex-wrap: wrap !important;
+}
