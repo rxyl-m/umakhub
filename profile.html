@@ -278,12 +278,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
+    // Map nav href anchors → actual section element IDs (they intentionally differ)
+    const anchorToSectionId = {
+        'account':        'accountForm',
+        'portfolio':      'portfolioForm',
+        'portfolio-docs': 'portfolio-docs',
+        'security':       'securityForm',
+        'preferences':    'preferences'
+    };
+
     document.querySelectorAll('.settings-nav-link').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
             e.preventDefault();
-            const targetId = this.getAttribute('href').substring(1);
+            const href = this.getAttribute('href').substring(1);
+            const targetId = anchorToSectionId[href] || href;
             const targetSection = document.getElementById(targetId);
-            if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (targetSection) {
+                targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Immediately highlight — don't wait for IntersectionObserver
+                document.querySelectorAll('.settings-nav-link').forEach(l => l.classList.remove('active'));
+                this.classList.add('active');
+            }
         });
     });
 
@@ -569,29 +584,15 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 </script>
 <script>
-/* ── Mobile Sidebar Overlay Sync ── */
 (function() {
   const overlay = document.getElementById('sidebarOverlay');
   const sidebar = document.getElementById('appSidebar');
   const menuBtn = document.getElementById('mobileMenuBtn');
   const menuIcon = document.getElementById('menuIcon');
   if (!overlay || !sidebar) return;
-  const close = () => {
-    sidebar.classList.remove('open');
-    overlay.classList.remove('active');
-    if (menuIcon) menuIcon.className = 'ph ph-list';
-  };
+  const close = () => { sidebar.classList.remove('open'); overlay.classList.remove('active'); if (menuIcon) menuIcon.className = 'ph ph-list'; };
   overlay.addEventListener('click', close);
-  if (menuBtn) {
-    menuBtn.addEventListener('click', () => {
-      setTimeout(() => {
-        overlay.classList.toggle('active', sidebar.classList.contains('open'));
-      }, 0);
-    });
-  }
-  document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
-    l.addEventListener('click', () => overlay.classList.remove('active'));
-  });
+  if (menuBtn) { menuBtn.addEventListener('click', () => { setTimeout(() => { overlay.classList.toggle('active', sidebar.classList.contains('open')); }, 0); }); }
 })();
 </script>
 </body>
