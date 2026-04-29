@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    UMak Hub — script.js
    Features: Role-based admin system (DB-driven), strong
              password policy, text-to-voice, notifications,
@@ -806,6 +806,34 @@ document.addEventListener("click", e => {
 });
 
 /* ════════════════════════════════════════════════════════
+   COMMENT EVENT DELEGATION
+   Handles .comment-submit-btn clicks and Enter key on
+   .comment-input for ALL pages — member feed, admin
+   dashboard and manage-posts tab — without needing to
+   re-bind after every render.
+   ════════════════════════════════════════════════════════ */
+document.addEventListener("click", e => {
+    const btn = e.target.closest(".comment-submit-btn");
+    if (!btn) return;
+    const itemId = btn.dataset.id;
+    if (!itemId) return;
+    const input = document.getElementById(`comment-input-${itemId}`);
+    const user  = getCurrentUser();
+    if (input && user) handleComment(itemId, input.value, user);
+});
+
+document.addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    const input = e.target;
+    if (!input.classList.contains("comment-input")) return;
+    // Extract item id from element id: "comment-input-<itemId>"
+    const itemId = input.id.replace("comment-input-", "");
+    if (!itemId) return;
+    const user = getCurrentUser();
+    if (user) handleComment(itemId, input.value, user);
+});
+
+/* ════════════════════════════════════════════════════════
    LOGIN / SIGN UP
    ════════════════════════════════════════════════════════ */
 function initLogin() {
@@ -1560,14 +1588,6 @@ async function setupManageItemsUI(items, countEl, listEl) {
             return renderItemCard(item, commentHtml + actions, likes); 
         }).join("");
 
-        // Re-bind comment events for the admin
-        listEl.querySelectorAll(".comment-submit-btn").forEach(btn => {
-            btn.onclick = () => {
-                const input = document.getElementById(`comment-input-${btn.dataset.id}`);
-                const adminUser = getCurrentUser();
-                handleComment(btn.dataset.id, input.value, adminUser);
-            };
-        });
     }
 
     // Bind filters
