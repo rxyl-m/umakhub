@@ -18,6 +18,18 @@ let _adminEmailsCache = new Set();
 /* ════════════════════════════════════════════════════════
    THEME (dark / light / logo swap)
    ════════════════════════════════════════════════════════ */
+function applyTheme() {
+    const saved = localStorage.getItem(STORAGE_THEME) || 'dark';
+    const isLight = saved === 'light';
+    document.body.classList.toggle('light-mode', isLight);
+    document.querySelectorAll('.theme-icon').forEach(icon => {
+        icon.className = isLight ? 'ph ph-sun theme-icon' : 'ph ph-moon theme-icon';
+    });
+    document.querySelectorAll('.brand-logo').forEach(img => {
+        img.src = isLight ? 'umaklogo.png' : 'umaklogo.png';
+    });
+}
+
 function setupThemeToggle() {
     applyTheme();
     document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
