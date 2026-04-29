@@ -285,15 +285,17 @@ window.toggleLike = async function(itemId, commentId, ownerEmail, btn) {
         const icon = btn.querySelector('i');
         const countSpan = btn.querySelector('span');
         let count = parseInt(countSpan.textContent) || 0;
-        const isLiked = icon.classList.contains('ph-heart-fill');
+        
+        // FIX: Check for Phosphor's 'ph-fill' class instead
+        const isLiked = icon.classList.contains('ph-fill');
 
         if (isLiked) {
-            icon.classList.replace('ph-heart-fill', 'ph-heart');
+            icon.className = 'ph ph-heart'; // Revert to outline
             btn.style.color = 'var(--text-secondary)';
             count = Math.max(0, count - 1);
             countSpan.textContent = count === 0 ? 'Like' : count;
         } else {
-            icon.classList.replace('ph-heart', 'ph-heart-fill');
+            icon.className = 'ph-fill ph-heart'; // Change to filled
             btn.style.color = 'var(--red)';
             count++;
             countSpan.textContent = count;
@@ -693,9 +695,9 @@ function renderItemCard(item, actionsHtml = "", likes = []) {
     const safeLikes = likes || [];
     const itemLikes = safeLikes.filter(l => l.item_id === item.id && !l.comment_id);
     const hasLiked = itemLikes.some(l => l.user_email === getCurrentUser()?.email);
-    const likeIcon = hasLiked ? 'ph-heart-fill' : 'ph-heart';
+    const likeIconClass = hasLiked ? 'ph-fill ph-heart' : 'ph ph-heart';
     const likeColor = hasLiked ? 'color: var(--red);' : 'color: var(--text-secondary);';
-
+    
     return `
     <article class="card item-card" data-item-type="${esc(item.category||"")}" data-name="${esc((item.name||"").toLowerCase())}">
         <div class="item-header">
