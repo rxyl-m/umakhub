@@ -2756,3 +2756,23 @@ window.addEventListener("load", () => {
         }, 300);
     }
 });
+
+/* ══════════════════════════════════════════════════════════
+   LOGO REFRESH
+   ══════════════════════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", () => {
+    // Select all main header logos (desktop and mobile)
+    const logos = document.querySelectorAll('#umaklogo, #umaklogoMobile');
+    
+    logos.forEach(logo => {
+        if (logo) {
+            // Make it look clickable
+            logo.style.cursor = 'pointer'; 
+            
+            // Reload the page when clicked
+            logo.addEventListener('click', () => {
+                window.location.reload();
+            });
+        }
+    });
+});
