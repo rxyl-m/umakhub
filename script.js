@@ -500,8 +500,16 @@ async function dbDeleteUser(email) {
     const { error } = await supabaseClient.from("users").delete().eq("email", email.toLowerCase());
     if (error) throw error;
 }
-async function dbUpdateUserRole(email, role) {
-    const { error } = await supabaseClient.from("users").update({ role }).eq("email", email.toLowerCase());
+async function dbUpdateUserRole(email, role, department = null) {
+    const updateData = { role: role };
+    
+    if (department) {
+        updateData.department = department;
+    } else if (role === "member") {
+        updateData.department = null; 
+    }
+
+    const { error } = await supabaseClient.from("users").update(updateData).eq("email", email.toLowerCase());
     if (error) throw error;
 }
 async function dbUpdateUserProfile(email, fields) {
@@ -1820,20 +1828,51 @@ if (isSelf) {
                 </article>`;
             }).join("");
 
-            // Re-bind listeners
             listEl.querySelectorAll(".grant-admin-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
-                    showConfirm("Grant Admin Powers", `Give admin privileges to ${btn.dataset.name}?`, "Grant Admin", false, async () => {
-                        try {
-                            await dbUpdateUserRole(btn.dataset.email, "admin");
-                            logActivity("admin_granted", `Admin powers granted to ${btn.dataset.name} (${btn.dataset.email})`);
-                            dbAddNotification(btn.dataset.email, `You have been granted Admin privileges on UMak Hub.`, 'info');
-                            showToast(`${btn.dataset.name} is now an admin!`);
-                            await renderUsersSection();
-                        } catch (err) { console.error(err); showToast("Error updating role.", "error"); }
-                    });
+                    const modal = document.getElementById('grantAdminModal');
+                    document.getElementById('grantAdminEmail').value = btn.dataset.email;
+                    document.getElementById('grantAdminName').value = btn.dataset.name;
+                    document.getElementById('grantAdminNameDisplay').textContent = btn.dataset.name;
+                    
+                    modal.classList.remove('hidden'); 
+                    modal.setAttribute('aria-hidden', 'false');
                 })
             );
+
+            // 2. Handle the modal submission (Run this only once, outside the loop)
+            const grantForm = document.getElementById('grantAdminForm');
+            if (grantForm && !grantForm.dataset.initialized) {
+                grantForm.dataset.initialized = "true"; // Prevent duplicate listeners
+                grantForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="ph ph-circle-notch ph-spin"></i> Processing...';
+                    
+                    const email = document.getElementById('grantAdminEmail').value;
+                    const name = document.getElementById('grantAdminName').value;
+                    const department = document.getElementById('grantAdminDepartment').value;
+                    
+                    try {
+                        // Send the role AND the department to Supabase
+                        await dbUpdateUserRole(email, "admin", department);
+                        logActivity("admin_granted", `Admin powers (${department}) granted to ${name}`);
+                        dbAddNotification(email, `You have been granted Admin privileges for ${department}.`, 'info');
+                        
+                        showToast(`${name} is now an admin for ${department}!`);
+                        closeModal(document.getElementById('grantAdminModal'));
+                        grantForm.reset();
+                        await renderUsersSection();
+                    } catch (err) { 
+                        console.error(err); 
+                        showToast("Error updating role.", "error"); 
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="ph ph-shield-star"></i> Confirm & Grant';
+                    }
+                });
+            }
             listEl.querySelectorAll(".revoke-admin-btn").forEach(btn =>
                 btn.addEventListener("click", () => {
                     showConfirm("Revoke Admin Powers", `Remove admin privileges from ${btn.dataset.name}?`, "Revoke", true, async () => {
@@ -2447,8 +2486,12 @@ if(chatReqForm) {
         e.preventDefault();
         const user   = getCurrentUser();
         const reason = document.getElementById('chatReason').value;
+        const department = document.getElementById('chatDepartment').value;
         await supabaseClient.from('chat_requests').insert([{
-            user_email: user.email, user_name: user.name, reason: reason
+            user_email: user.email,
+            user_name: user.name,
+            reason: reason,
+            target_department: department
         }]);
         showToast("Chat request sent to admin!");
         closeModal(document.getElementById('chatRequestModal'));

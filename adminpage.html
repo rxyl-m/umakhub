@@ -297,6 +297,39 @@
     </div>
 
   </div></div></div>
+  <div id="grantAdminModal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop" onclick="closeModal(document.getElementById('grantAdminModal'))"></div>
+    <div class="modal-panel" style="max-width:400px;">
+        <div class="modal-header">
+            <div>
+                <h2>Assign Admin Role</h2>
+                <p>Grant privileges and assign a department.</p>
+            </div>
+            <button onclick="closeModal(document.getElementById('grantAdminModal'))" class="button secondary sm"><i class="ph ph-x"></i></button>
+        </div>
+        <form id="grantAdminForm">
+            <input type="hidden" id="grantAdminEmail">
+            <input type="hidden" id="grantAdminName">
+            
+            <p style="margin-bottom: 16px; font-size: 0.9rem;">You are granting admin powers to <strong id="grantAdminNameDisplay" style="color: var(--accent);"></strong>.</p>
+            
+            <label>
+                Assign Department
+                <select id="grantAdminDepartment" required>
+                    <option value="" disabled selected>Select a department...</option>
+                    <option value="IT Support">IT Support (Bugs & Tech Issues)</option>
+                    <option value="Content Moderation">Content Moderation (Feed & Posts)</option>
+                    <option value="Campus Security">Campus Security</option>
+                </select>
+            </label>
+            
+            <div class="form-actions" style="margin-top:20px;">
+                <button type="submit" class="button primary" style="flex:1;"><i class="ph ph-shield-star"></i> Confirm & Grant</button>
+                <button type="button" onclick="closeModal(document.getElementById('grantAdminModal'))" class="button secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
   <div class="fab-container">
       <div class="fab-options" id="fabOptions">
           <a class="fab-option" href="adminrequestform.html" style="background: var(--accent); color: var(--iac-navy);">

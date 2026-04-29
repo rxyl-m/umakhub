@@ -112,6 +112,15 @@
         </div>
         <form id="chatRequestForm">
             <label>
+    Department
+    <select id="chatDepartment" required>
+        <option value="" disabled selected>Select who to contact...</option>
+        <option value="IT Support">IT Support (Bugs & Tech Issues)</option>
+        <option value="Content Moderation">Content Moderation (Feed & Posts)</option>
+        <option value="Campus Security">Campus Security</option>
+    </select>
+</label>
+            <label>
                 Reason for chat
                 <textarea id="chatReason" rows="3" required placeholder="e.g., I have a question about my project showcase..."></textarea>
             </label>
