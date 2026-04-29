@@ -1007,9 +1007,12 @@ async function renderMemberSection(user) {
         const [items, requests] = await Promise.all([
             dbGetItems(), dbGetRequests(user.email),
         ]);
-        // Comments load separately — a missing table won't crash the feed
+        
+        // Fetch comments and likes
         const comments = await dbGetComments();
-        _renderAvailableItems(items, comments, user);
+        const likes = await dbGetLikes(); // 1. ADD THIS LINE TO FETCH LIKES
+        
+        _renderAvailableItems(items, comments, likes, user); // 2. PASS 'likes' HERE
         _renderMyRequests(requests);
         setTimeout(injectTTSButtons, 300);
     } catch (err) {
