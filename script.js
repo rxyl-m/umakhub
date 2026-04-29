@@ -691,7 +691,6 @@ function renderItemCard(item, actionsHtml = "", likes = []) {
 
     const avatarLetter = authorName.slice(0, 1).toUpperCase();
 
-    // Calculate Likes (Safeguard against undefined likes array)
     const safeLikes = likes || [];
     const itemLikes = safeLikes.filter(l => l.item_id === item.id && !l.comment_id);
     const hasLiked = itemLikes.some(l => l.user_email === getCurrentUser()?.email);
@@ -721,7 +720,7 @@ function renderItemCard(item, actionsHtml = "", likes = []) {
         <div style="padding: 0 20px; display: flex; gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">
             <button class="button sm" style="background:transparent; border:none; padding:4px 8px; ${likeColor}" 
                     onclick="toggleLike('${item.id}', null, '${item.ownerEmail || item.contact}', this)">
-                <i class="ph ${likeIcon}" style="font-size:1.2rem;"></i> <span style="font-size:0.85rem; margin-left:4px;">${itemLikes.length || 'Like'}</span>
+                <i class="${likeIconClass}" style="font-size:1.2rem;"></i> <span style="font-size:0.85rem; margin-left:4px;">${itemLikes.length || 'Like'}</span>
             </button>
         </div>
 
