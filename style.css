@@ -1928,3 +1928,12 @@ input:focus, textarea:focus, select:focus {
         box-shadow: 0 0 0 0 rgba(0, 80, 158, 0);
     }
 }
+/* ══════════════════════════════════════════════════════════
+   LIGHT MODE TAG VISIBILITY FIX
+   ══════════════════════════════════════════════════════════ */
+body.light-mode .tag-lost     { color: #be123c; border-color: rgba(225, 29, 72, 0.4); }
+body.light-mode .tag-found    { color: #0f766e; border-color: rgba(13, 148, 136, 0.4); }
+body.light-mode .tag-pending  { color: #b45309; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.15); }
+body.light-mode .tag-approved { color: #047857; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.15); }
+body.light-mode .tag-rejected { color: #334155; border-color: rgba(100, 116, 139, 0.4); background: rgba(100, 116, 139, 0.15); }
+body.light-mode .tag-claimed  { color: #1d4ed8; border-color: rgba(77, 130, 255, 0.4); }
