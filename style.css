@@ -1883,7 +1883,7 @@ input:focus, textarea:focus, select:focus {
     border-radius: 100%;
     object-fit: cover;
     /* The heartbeat pulse animation */
-    animation: splashPulse 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: splashPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes splashPulse {
@@ -1898,5 +1898,33 @@ input:focus, textarea:focus, select:focus {
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 204, 0, 0);
+    }
+}
+/* Theme Transition Splash Overrides */
+.app-splash.dark-splash {
+    background: #060a12; /* Locks to Dark Base */
+}
+
+.app-splash.light-splash {
+    background: #f4f7fb; /* Locks to Light Base */
+}
+
+/* Light Mode gets a UMak Blue pulse instead of Gold */
+.app-splash.light-splash .splash-logo {
+    animation: splashPulseLight 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes splashPulseLight {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 80, 158, 0.5); /* UMak Blue Glow */
+    }
+    70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 25px rgba(0, 80, 158, 0); 
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(0, 80, 158, 0);
     }
 }

@@ -18,25 +18,42 @@ let _adminEmailsCache = new Set();
 /* ════════════════════════════════════════════════════════
    THEME (dark / light / logo swap)
    ════════════════════════════════════════════════════════ */
-function applyTheme() {
-    const saved = localStorage.getItem(STORAGE_THEME) || 'dark';
-    const isLight = saved === 'light';
-    document.body.classList.toggle('light-mode', isLight);
-    document.querySelectorAll('.theme-icon').forEach(icon => {
-        icon.className = isLight ? 'ph ph-sun theme-icon' : 'ph ph-moon theme-icon';
-    });
-    document.querySelectorAll('.brand-logo').forEach(img => {
-        img.src = isLight ? 'umaklogo.png' : 'umaklogo.png';
-    });
-}
-
 function setupThemeToggle() {
     applyTheme();
     document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
         btn.onclick = () => {
-            const isLight = document.body.classList.toggle('light-mode');
-            localStorage.setItem(STORAGE_THEME, isLight ? 'light' : 'dark');
-            applyTheme();
+            // 1. Determine which theme we are switching TO
+            const isCurrentlyLight = document.body.classList.contains('light-mode');
+            const targetIsLight = !isCurrentlyLight;
+
+            // 2. Instantly inject the transition splash screen
+            const transitionSplash = document.createElement('div');
+            // Apply the specific class so it matches the target theme's colors
+            transitionSplash.className = `app-splash ${targetIsLight ? 'light-splash' : 'dark-splash'}`;
+            transitionSplash.innerHTML = `
+                <div class="splash-logo-container">
+                    <img src="umaklogo.png" alt="Switching Theme" class="splash-logo">
+                </div>
+            `;
+            document.body.appendChild(transitionSplash);
+
+            // 3. Give the browser 50ms to render the splash screen over the UI
+            setTimeout(() => {
+                // Swap the actual CSS classes behind the splash screen
+                document.body.classList.toggle('light-mode', targetIsLight);
+                localStorage.setItem(STORAGE_THEME, targetIsLight ? 'light' : 'dark');
+                applyTheme();
+
+                // 4. Hold the splash screen for half a second for that cool loading effect
+                setTimeout(() => {
+                    transitionSplash.classList.add("hidden-splash");
+                    
+                    // 5. Remove it from the DOM after the CSS fade finishes
+                    setTimeout(() => {
+                        transitionSplash.remove();
+                    }, 400);
+                }, 500); 
+            }, 50);
         };
     });
 }
