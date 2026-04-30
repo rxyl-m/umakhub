@@ -98,6 +98,7 @@
             </div>
     </section>
 </div>
+        <!-- ── Chat Request Modal ── -->
         <div id="chatRequestModal" class="modal hidden" aria-hidden="true">
     <div class="modal-backdrop" onclick="closeModal(document.getElementById('chatRequestModal'))"></div>
     <div class="modal-panel" style="max-width:400px;">
@@ -112,19 +113,20 @@
         </div>
         <form id="chatRequestForm">
             <label>
-    Department
-    <select id="chatDepartment" required>
-        <option value="" disabled selected>Select who to contact...</option>
-        <option value="IT Support">IT Support (Bugs & Tech Issues)</option>
-        <option value="Content Moderation">Content Moderation (Feed & Posts)</option>
-        <option value="Campus Security">Campus Security</option>
-    </select>
-</label>
+                Department
+                <select id="chatDepartment" required>
+                    <option value="" disabled selected>Select who to contact...</option>
+                    <option value="IT Support">IT Support (Bugs &amp; Tech Issues)</option>
+                    <option value="Content Moderation">Content Moderation (Feed &amp; Posts)</option>
+                    <option value="Campus Security">Campus Security</option>
+                </select>
+            </label>
             <label>
                 Reason for chat
                 <textarea id="chatReason" rows="3" required placeholder="e.g., I have a question about my project showcase..."></textarea>
             </label>
-            <button type="submit" class="button primary fullwidth" style="margin-top:10px;">
+            <p id="chatRequestError" style="color: var(--color-danger, #e11d48); font-size: 0.85rem; min-height: 1.2em; margin: 4px 0 0;"></p>
+            <button type="submit" class="button primary fullwidth" style="margin-top:10px;" id="chatRequestSubmitBtn">
                 <i class="ph ph-paper-plane"></i> Send Request
             </button>
         </form>
@@ -233,6 +235,115 @@
   document.querySelectorAll('#appSidebar .nav-link').forEach(l => {
     l.addEventListener('click', () => overlay.classList.remove('active'));
   });
+})();
+
+/* ── Chat Request Form — Department-Aware Submission ──
+   Replaces any handler already attached by script.js by using
+   addEventListener with { once: true } re-attachment after
+   removing the old listener via form replacement.
+──────────────────────────────────────────────────────── */
+(function () {
+  // Wait until script.js has had a chance to attach its own handler,
+  // then replace the form node so only THIS handler runs.
+  window.addEventListener('DOMContentLoaded', () => {
+    replaceChatFormHandler();
+  });
+
+  // Also fire immediately in case DOMContentLoaded already fired.
+  if (document.readyState !== 'loading') replaceChatFormHandler();
+
+  function replaceChatFormHandler() {
+    const oldForm = document.getElementById('chatRequestForm');
+    if (!oldForm || oldForm.dataset.deptFixed) return;
+
+    // Clone to strip any existing listeners attached by script.js
+    const form = oldForm.cloneNode(true);
+    oldForm.replaceWith(form);
+    form.dataset.deptFixed = '1'; // guard against double-init
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const dept   = document.getElementById('chatDepartment').value.trim();
+      const reason = document.getElementById('chatReason').value.trim();
+      const errEl  = document.getElementById('chatRequestError');
+      const btn    = document.getElementById('chatRequestSubmitBtn');
+
+      errEl.textContent = '';
+
+      if (!dept) {
+        errEl.textContent = 'Please select a department.';
+        return;
+      }
+      if (!reason) {
+        errEl.textContent = 'Please describe your reason for the chat.';
+        return;
+      }
+
+      // Get current user (assumes getCurrentUser() is defined in script.js)
+      const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+      if (!user) {
+        errEl.textContent = 'You must be logged in to request a chat.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner"></i> Sending…';
+
+      try {
+        // Insert the conversation record into Supabase.
+        // The 'department' column routes the request to the right admin.
+        const { data, error } = await supabaseClient
+          .from('conversations')
+          .insert([{
+            member_email : user.email,
+            member_name  : user.name  || user.email,
+            department   : dept,          // ← the department the user picked
+            reason       : reason,
+            status       : 'pending',
+            created_at   : new Date().toISOString(),
+          }])
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        const convId = data?.id;
+
+        // Show the active chat link in the sidebar
+        const chatLink = document.getElementById('activeChatLink');
+        if (chatLink) {
+          chatLink.classList.remove('hidden');
+          // Pass both conversation ID and department so messageft.html
+          // can load the right thread and display the department name.
+          chatLink.href = `messageft.html?id=${encodeURIComponent(convId)}&dept=${encodeURIComponent(dept)}`;
+        }
+
+        // Persist to localStorage so messageft.html survives a page load
+        localStorage.setItem('activeChatId',   convId);
+        localStorage.setItem('activeChatDept',  dept);
+
+        // Close modal and show success notice
+        closeModal(document.getElementById('chatRequestModal'));
+
+        const notice = document.getElementById('memberNotice');
+        if (notice) {
+          notice.textContent = `Chat request sent to ${dept}. An admin will reply shortly.`;
+          notice.classList.remove('visually-hidden');
+          setTimeout(() => notice.classList.add('visually-hidden'), 5000);
+        }
+
+        // Redirect immediately to the messaging page
+        window.location.href = `messageft.html?id=${encodeURIComponent(convId)}&dept=${encodeURIComponent(dept)}`;
+
+      } catch (err) {
+        console.error('Chat request error:', err);
+        errEl.textContent = err?.message || 'Failed to send request. Please try again.';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph ph-paper-plane"></i> Send Request';
+      }
+    });
+  }
 })();
 </script>
 </body>
