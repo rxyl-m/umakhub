@@ -120,6 +120,8 @@ async function fetchAndRenderNotifications() {
     const countEl = document.getElementById('notificationCount');
     if (countEl) countEl.textContent = unread;
 
+    // ... (keep the top part of fetchAndRenderNotifications the same)
+
     let dropdown = document.getElementById('notifDropdown');
     if (!dropdown) {
         dropdown = document.createElement('div');
@@ -128,6 +130,17 @@ async function fetchAndRenderNotifications() {
         document.querySelector('.notif-bell-wrap')?.appendChild(dropdown);
     }
 
+    // 🚨 1. NEW: Create the Action Center button ONLY if the user is an admin
+    const isAdmin = user.role === 'admin';
+    const adminActionHtml = isAdmin ? `
+        <div style="padding: 12px; border-top: 1px solid var(--border); background: var(--bg-raised);">
+            <button class="button primary fullwidth" onclick="if(window.openAdminActionCenter) window.openAdminActionCenter();">
+                <i class="ph ph-shield-check"></i> Open Action Center
+            </button>
+        </div>
+    ` : '';
+
+    // 🚨 2. Add the \${adminActionHtml} variable to the very bottom
     dropdown.innerHTML = `
         <div class="notif-header">
             Notifications
@@ -145,7 +158,9 @@ async function fetchAndRenderNotifications() {
                     </div>
                 </div>`).join('') :
             '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.82rem;">No notifications yet.</div>'}
-        </div>`;
+        </div>
+        ${adminActionHtml} 
+    `;
 }
 
 async function markAllNotificationsRead() {
@@ -1543,6 +1558,18 @@ async function renderAdminDashboard() {
         set("statMembers",       users.length);
         set("statChats",         pendingChats.length);
         set("notificationCount", totalPending);
+
+        const bell  = document.getElementById("notificationBell");
+        const modal = document.getElementById("requestModal");
+        if (bell && modal) {
+            bell.onclick = (e) => {
+                e.stopPropagation(); // Stops the default dropdown from triggering
+                document.getElementById('notifDropdown')?.classList.add('hidden'); // Force hide dropdown just in case
+                openRequestModal(pendingReq, pendingChats, modal, requests);
+            };
+            document.getElementById("closeModal").onclick = () => closeModal(modal);
+            modal.querySelector(".modal-backdrop").onclick = () => closeModal(modal);
+        }
 
         if (pendingEl) {
             pendingEl.innerHTML = pendingReq.length

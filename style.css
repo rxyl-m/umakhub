@@ -263,8 +263,8 @@ button, input, select, textarea { font: inherit; }
 
 /* ── Page Header ── */
 .page-header {
-  position: relative; /* 🚨 ADD THIS */
-  z-index: 100;       /* 🚨 ADD THIS */
+  position: relative; 
+  z-index: 49; 
   display: flex; justify-content: space-between; align-items: center; gap: 16px;
   padding: 20px 24px; border-radius: var(--radius-xl);
   background: var(--bg-surface); border: 1px solid var(--border); box-shadow: var(--shadow);
