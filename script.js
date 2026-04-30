@@ -1536,6 +1536,13 @@ function switchAdminSection(section) {
 }
 
 async function renderAdminDashboard() {
+    // Update this part in renderAdminDashboard()
+const { count: pendingChatCount } = await supabaseClient
+    .from('conversations')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
+set("statChats", pendingChatCount || 0);[cite, 1, 4]
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
     set("statTotal","…"); set("statPendingReqs","…"); set("statChats","…"); set("statMembers","…");
     const pendingEl  = document.getElementById("pendingRequests");
