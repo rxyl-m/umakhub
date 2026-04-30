@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    UMak Hub — script.js
    Features: Role-based admin system (DB-driven), strong
              password policy, text-to-voice, notifications,
@@ -998,15 +998,23 @@ function initLogin() {
                 }
             });
 
-            if (error) throw error;
+            // 2. IMPORTANT: Manually insert into your public 'users' table
+            const { error: dbError } = await supabaseClient.from('users').insert([{
+                email: email.toLowerCase(),
+                name: `${firstName} ${lastName}`,
+                role: "member"
+            }]);
 
-            // Update the success message to remind them about the email!
+            if (dbError) throw dbError;
+
+            // FIX: Only call this ONCE. Remove the second redundant line.
             showMsg(succEl, "Account created! Please check your UMak email to verify before signing in.", "success");
+            
             logActivity("signup", `${firstName} ${lastName} created an account`);
             dbAddNotification(email, `Welcome to UMak Hub, ${firstName}!`, 'info');
             isLoginDirty = false;
             document.getElementById("signupForm").reset();
-            showMsg(succEl, "Account created! You can now sign in.", "success");
+            
             setTimeout(() => {
                 document.querySelector('.auth-tab[data-tab="signin"]')?.click();
                 const emailEl = document.getElementById("email");
