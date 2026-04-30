@@ -21,6 +21,7 @@
         .bubble.theirs { align-self: flex-start; background: var(--bg-raised); border: 1px solid var(--border); border-bottom-left-radius: 4px; color: var(--text-primary); }
         .bubble::after { content: attr(data-time); display: block; font-size: 0.65rem; margin-top: 4px; opacity: 0.7; text-align: right; }
         .chat-input-area { padding: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; background: var(--bg-surface); flex-shrink: 0; }
+        .dept-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(var(--iac-bright-rgb, 0,122,255), 0.12); color: var(--iac-bright); border: 1px solid rgba(var(--iac-bright-rgb, 0,122,255), 0.25); border-radius: 99px; font-size: 0.72rem; font-family: var(--font-mono); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 3px 10px; margin-top: 6px; }
         @keyframes popIn { from { opacity: 0; transform: scale(0.95) translateY(5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         @media (max-width: 720px) {
             .chat-container { height: calc(100dvh - 180px); height: calc(100vh - 180px); margin-top: 12px; border-radius: var(--radius-lg); }
@@ -45,7 +46,7 @@
     <!-- Mobile sidebar backdrop overlay -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- Mobile header — required so initMobileMenu() has elements to attach to -->
+    <!-- Mobile header -->
     <div class="mobile-header">
         <div class="brand-panel" style="margin-bottom:0; padding:0;">
             <img src="umaklogo.png" alt="UMak Hub Logo" id="umaklogoMobile">
@@ -108,7 +109,12 @@
             <div>
                 <p class="section-label">Direct Message</p>
                 <h1 id="chatUserName">Loading...</h1>
-                <p id="chatUserEmail" class="section-note"></p>
+                <!-- Department badge — shown for members so they know who they contacted -->
+                <div id="chatDeptBadge" class="dept-badge" style="display:none;">
+                    <i class="ph ph-buildings"></i>
+                    <span id="chatDeptLabel"></span>
+                </div>
+                <p id="chatUserEmail" class="section-note" style="margin-top:4px;"></p>
             </div>
             <div class="header-actions">
                 <button id="endChatBtnDesktop" class="button danger" onclick="document.getElementById('endChatModal').classList.remove('hidden')">
@@ -155,74 +161,158 @@
 const user = getCurrentUser();
 if (!user) window.location.href = "login.html";
 
-// Case-insensitive check to catch both "admin" and "Admin"
-const isAdmin = user.role && user.role.toLowerCase() === "admin";
+const isAdmin   = user.role && user.role.toLowerCase() === "admin";
 const urlParams = new URLSearchParams(window.location.search);
 
+// ── Read routing params from URL (set by memberpage.html on chat request submit)
+// For admins, these come from adminpage.html when they open a member's chat.
+// For members, these come from the chat request redirect in memberpage.html.
+const urlConvId = urlParams.get('id')   || localStorage.getItem('activeChatId')   || null;
+const urlDept   = urlParams.get('dept') || localStorage.getItem('activeChatDept') || null;
+
 // For admin: target is the member passed via URL params
-// For member: target is looked up from their messages/chat_requests (no hardcoded email)
+// For member: resolved below via resolveTargetForMember()
 let targetEmail = isAdmin ? (urlParams.get('email') || "") : "";
 let targetName  = isAdmin ? (urlParams.get('name')  || targetEmail.split('@')[0] || "Student Member") : "Admin";
+let activeDept  = isAdmin ? (urlParams.get('dept')  || urlDept || "") : (urlDept || "");
+let activeConvId = urlConvId;
 
+// ── resolveTargetForMember ────────────────────────────────────────────────────
+// Priority order:
+//   1. conversations table row matching urlConvId → assigned admin_email
+//   2. Find admin by department from urlDept (users table or conversations)
+//   3. Existing messages fallback
+//   4. chat_requests approved/resolved fallback
+//   5. Any admin (last resort)
 async function resolveTargetForMember() {
-    if (isAdmin) return; // Admin already has target from URL
+    if (isAdmin) return; // Admins have target from URL already
+
+    // 1. We have a specific conversation ID — check if an admin is assigned
+    if (activeConvId) {
+        try {
+            const { data: conv } = await supabaseClient
+                .from('conversations')
+                .select('admin_email, department, status')
+                .eq('id', activeConvId)
+                .single();
+
+            if (conv) {
+                activeDept = conv.department || activeDept;
+
+                if (conv.admin_email) {
+                    targetEmail = conv.admin_email;
+                    const { data: adminProfile } = await supabaseClient
+                        .from('users')
+                        .select('name')
+                        .eq('email', targetEmail)
+                        .single();
+                    targetName = adminProfile?.name || activeDept || 'Admin';
+                    return;
+                }
+            }
+        } catch (e) { console.warn("Could not load conversation by ID:", e); }
+    }
+
+    // 2. Find an admin whose department matches what the user selected
+    if (activeDept) {
+        try {
+            const { data: deptAdmins } = await supabaseClient
+                .from('users')
+                .select('email, name')
+                .eq('role', 'admin')
+                .eq('department', activeDept)
+                .limit(1);
+
+            if (deptAdmins && deptAdmins.length > 0) {
+                targetEmail = deptAdmins[0].email;
+                targetName  = deptAdmins[0].name || activeDept;
+
+                // Back-fill admin_email on the conversations row so future
+                // page loads skip straight to step 1.
+                if (activeConvId) {
+                    supabaseClient
+                        .from('conversations')
+                        .update({ admin_email: targetEmail, status: 'active' })
+                        .eq('id', activeConvId)
+                        .then(() => {});
+                }
+                return;
+            }
+        } catch (e) { console.warn("Could not find admin by department:", e); }
+    }
+
+    // 3. Fallback: look in existing messages for a previous conversation partner
     try {
-        // 1. Try to find the admin from existing messages
         const { data: msgs } = await supabaseClient
             .from('messages')
             .select('sender_email, receiver_email')
             .or(`sender_email.eq.${user.email},receiver_email.eq.${user.email}`)
             .limit(1);
+
         if (msgs && msgs.length > 0) {
             const msg = msgs[0];
             targetEmail = msg.sender_email === user.email ? msg.receiver_email : msg.sender_email;
+            if (targetEmail) return;
         }
-        // 2. Fallback: look up the admin who approved their chat request
-        if (!targetEmail) {
-            const { data: chatReq } = await supabaseClient
-                .from('chat_requests')
-                .select('admin_email')
-                .eq('user_email', user.email)
-                .in('status', ['approved', 'resolved'])
-                .order('created_at', { ascending: false })
-                .limit(1);
-            if (chatReq && chatReq.length > 0 && chatReq[0].admin_email) {
-                targetEmail = chatReq[0].admin_email;
-            }
-        }
-        // 3. Last resort: get any admin from users table
-        if (!targetEmail) {
-            const { data: admins } = await supabaseClient.from('users').select('email, name').eq('role', 'admin').limit(1);
-            if (admins && admins.length > 0) {
-                targetEmail = admins[0].email;
-                targetName  = admins[0].name || "Admin";
-            }
-        }
-    } catch(e) { console.error("Could not resolve admin target:", e); }
+    } catch (e) { console.warn("Message lookup failed:", e); }
 
-    document.getElementById('chatUserName').textContent  = targetName;
-    document.getElementById('chatUserEmail').textContent = targetEmail;
+    // 4. Fallback: approved/resolved chat_request row
+    try {
+        const { data: chatReq } = await supabaseClient
+            .from('chat_requests')
+            .select('admin_email')
+            .eq('user_email', user.email)
+            .in('status', ['approved', 'resolved'])
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (chatReq && chatReq.length > 0 && chatReq[0].admin_email) {
+            targetEmail = chatReq[0].admin_email;
+            return;
+        }
+    } catch (e) { console.warn("chat_requests lookup failed:", e); }
+
+    // 5. Last resort: any admin
+    try {
+        const { data: admins } = await supabaseClient
+            .from('users')
+            .select('email, name')
+            .eq('role', 'admin')
+            .limit(1);
+
+        if (admins && admins.length > 0) {
+            targetEmail = admins[0].email;
+            targetName  = admins[0].name || "Admin";
+        }
+    } catch (e) { console.warn("Admin fallback lookup failed:", e); }
 }
 
-// UI Initialization
-document.getElementById('chatUserName').textContent  = targetName;
-document.getElementById('chatUserEmail').textContent = isAdmin ? targetEmail : "Resolving...";
-document.getElementById('backToPortal').href = isAdmin ? "adminpage.html" : "memberpage.html";
+// ── Static UI initialization (before async resolution) ────────────────────────
+document.getElementById('chatUserName').textContent  = isAdmin ? targetName : (activeDept || "Connecting...");
+document.getElementById('chatUserEmail').textContent = isAdmin ? targetEmail : "Connecting to department...";
+document.getElementById('backToPortal').href         = isAdmin ? "adminpage.html" : "memberpage.html";
 
+// Show department badge for members
+if (!isAdmin && activeDept) {
+    document.getElementById('chatDeptBadge').style.display = 'inline-flex';
+    document.getElementById('chatDeptLabel').textContent   = activeDept;
+}
+
+// Sidebar profile
 const memberNameEl   = document.getElementById('memberName');
 const memberAvatarEl = document.getElementById('memberAvatar');
 if (memberNameEl)   memberNameEl.textContent   = user.name;
 if (memberAvatarEl) memberAvatarEl.textContent = (user.name || 'U').slice(0, 2).toUpperCase();
 
-// ─── FIX: Wire up logout button — was missing on this page ───────────────────
+// Logout button
 const logoutBtnEl = document.getElementById('logoutBtn');
 if (logoutBtnEl) logoutBtnEl.onclick = logout;
 
-// Also update mobile header subtitle with who we're chatting to
+// Mobile subtitle
 const chatSubtitle = document.getElementById('chatSubtitleMobile');
-if (chatSubtitle) chatSubtitle.textContent = targetName;
+if (chatSubtitle) chatSubtitle.textContent = activeDept || targetName;
 
-// Wire up the mobile End Chat button (mirrors the desktop one)
+// Mobile End Chat button
 const endChatBtnMobile = document.getElementById('endChatBtnMobile');
 if (endChatBtnMobile) {
     endChatBtnMobile.style.display = 'inline-flex';
@@ -232,56 +322,54 @@ if (endChatBtnMobile) {
 const chatBox = document.getElementById("chatBox");
 let chatChannel;
 
-// ─── FIX 1: renderBubble now accepts a timestamp parameter ───────────────────
-// Previously used new Date() always, so history messages showed the wrong time.
-// Now uses the actual created_at from the database row when available.
+// ── renderBubble ──────────────────────────────────────────────────────────────
+// Uses the actual DB timestamp for history messages so times are correct.
 function renderBubble(content, isMe, timestamp) {
     const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.flexDirection = "column";
-    wrapper.style.alignItems = isMe ? "flex-end" : "flex-start";
-    wrapper.style.marginBottom = "8px";
+    wrapper.style.cssText = `display:flex; flex-direction:column; align-items:${isMe ? 'flex-end' : 'flex-start'}; margin-bottom:8px;`;
 
     const senderLabel = document.createElement("span");
-    senderLabel.style.fontSize = "0.7rem";
-    senderLabel.style.color = "var(--text-muted)";
-    senderLabel.style.marginBottom = "2px";
-    senderLabel.style.padding = "0 4px";
+    senderLabel.style.cssText = "font-size:0.7rem; color:var(--text-muted); margin-bottom:2px; padding:0 4px;";
     senderLabel.textContent = isMe ? "You" : targetName;
 
     const div = document.createElement("div");
     div.className = `bubble ${isMe ? 'mine' : 'theirs'}`;
     div.textContent = content;
 
-    // Use the real timestamp from DB, fallback to now only for optimistic (just-sent) bubbles
     const ts = timestamp ? new Date(timestamp) : new Date();
     div.setAttribute('data-time', ts.getHours() + ":" + String(ts.getMinutes()).padStart(2, '0'));
 
     wrapper.appendChild(senderLabel);
     wrapper.appendChild(div);
-
     chatBox.insertBefore(wrapper, document.getElementById('typingIndicator'));
     chatBox.scrollTop = chatBox.scrollHeight;
 }
 
+// ── initChat ──────────────────────────────────────────────────────────────────
 async function initChat() {
+    // Update header now that targetName/targetEmail are resolved
+    if (!isAdmin) {
+        document.getElementById('chatUserName').textContent  = activeDept  || targetName;
+        document.getElementById('chatUserEmail').textContent = targetEmail
+            ? `Chatting with: ${targetName} (${targetEmail})`
+            : targetName;
+
+        // Persist resolved IDs so "Back to Portal → Messages" link works
+        if (activeConvId) localStorage.setItem('activeChatId',  activeConvId);
+        if (activeDept)   localStorage.setItem('activeChatDept', activeDept);
+    }
+
+    // Load message history
     const history = await dbGetMessages(user.email, targetEmail);
-    // ─── FIX 1 applied: pass msg.created_at so history shows correct times ───
     history.forEach(msg => renderBubble(msg.content, msg.sender_email === user.email, msg.created_at));
 
-    // ─── FIX 2: unique channel name per conversation ─────────────────────────
-    // Previously hardcoded 'chat-room' caused collisions if admin had
-    // multiple chat tabs open with different users at the same time.
+    // Realtime channel — unique per conversation pair to avoid cross-talk
     const channelName = `chat-${[user.email, targetEmail].sort().join('-')}`;
-
     chatChannel = supabaseClient.channel(channelName)
-        .on('postgres_changes', { 
-            event: 'INSERT', schema: 'public', table: 'messages' 
-        }, payload => {
-            // Only render bubbles from the OTHER person — our own messages are
-            // already rendered optimistically on submit.
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+            // Only render the other person's incoming messages here;
+            // our own are already rendered optimistically on submit.
             if (payload.new.sender_email === targetEmail && payload.new.receiver_email === user.email) {
-                // ─── FIX 1 applied: use real timestamp from realtime payload ──
                 renderBubble(payload.new.content, false, payload.new.created_at);
             }
         })
@@ -293,13 +381,13 @@ async function initChat() {
         })
         .subscribe();
 
+    // Send message
     document.getElementById('chatForm').onsubmit = async (e) => {
         e.preventDefault();
-        const input = document.getElementById('chatMsgInput');
+        const input   = document.getElementById('chatMsgInput');
         const content = input.value.trim();
-        if (!content) return;
-        // Render optimistically (no timestamp = will use current time, which is correct for a just-sent message)
-        renderBubble(content, true);
+        if (!content || !targetEmail) return;
+        renderBubble(content, true); // optimistic render
         input.value = "";
         await dbSendMessage(user.email, targetEmail, content);
     };
@@ -315,26 +403,26 @@ async function initChat() {
     });
 }
 
+// ── End Chat ──────────────────────────────────────────────────────────────────
 document.getElementById('endChatForm').onsubmit = async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="ph ph-circle-notch"></i> Archiving...';
-    }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = '<i class="ph ph-circle-notch"></i> Archiving...'; }
+
     const conclusion = document.getElementById('chatConclusion').value;
-    const history = await dbGetMessages(user.email, targetEmail);
-    const now = new Date();
+    const history    = await dbGetMessages(user.email, targetEmail);
+    const now        = new Date();
 
     const archiveData = {
-        user_email: isAdmin ? targetEmail : user.email,
-        admin_email: isAdmin ? user.email : targetEmail,
-        action_type: "Concluded Chat",
-        meeting_date: now.toLocaleDateString(),
-        meeting_time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        location: "Virtual Chat Hub",
-        chat_history: history,
-        conclusion: conclusion
+        user_email   : isAdmin ? targetEmail : user.email,
+        admin_email  : isAdmin ? user.email  : targetEmail,
+        action_type  : "Concluded Chat",
+        meeting_date : now.toLocaleDateString(),
+        meeting_time : now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        location     : "Virtual Chat Hub",
+        chat_history : history,
+        conclusion   : conclusion,
+        department   : activeDept || null,
     };
 
     try {
@@ -343,34 +431,41 @@ document.getElementById('endChatForm').onsubmit = async (e) => {
 
         await dbDeleteMessages(user.email, targetEmail);
 
+        // Mark the conversations row as resolved (if we have its ID)
+        if (activeConvId) {
+            await supabaseClient.from('conversations').update({ status: 'resolved' }).eq('id', activeConvId);
+        }
+
+        // Also mark legacy chat_requests row if one exists
         await supabaseClient.from('chat_requests')
-                            .update({ status: 'resolved' })
-                            .eq('user_email', isAdmin ? targetEmail : user.email);
+            .update({ status: 'resolved' })
+            .eq('user_email', isAdmin ? targetEmail : user.email);
+
+        // Clear localStorage routing keys
+        localStorage.removeItem('activeChatId');
+        localStorage.removeItem('activeChatDept');
 
         showToast("Conversation archived successfully!");
-
-        setTimeout(() => {
-            window.location.href = isAdmin ? "adminpage.html" : "memberpage.html";
-        }, 2000);
+        setTimeout(() => { window.location.href = isAdmin ? "adminpage.html" : "memberpage.html"; }, 2000);
 
     } catch (err) {
         console.error("DEBUGGER - SQL ERROR:", err);
         showToast("Database Error: " + (err.message || "Could not save log"), "error");
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = "Confirm & Archive";
-        }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = "Confirm & Archive"; }
     }
 };
 
-// Entry point: resolve target (for members), then start chat
+// ── Entry point ───────────────────────────────────────────────────────────────
 async function start() {
     await resolveTargetForMember();
+
     if (!targetEmail) {
         document.getElementById('chatUserName').textContent = "No active chat";
-        document.getElementById('chatBox').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text-muted);">No admin chat found. Please request a chat from the campus feed.</div>';
+        document.getElementById('chatBox').innerHTML =
+            '<div style="padding:30px;text-align:center;color:var(--text-muted);">No admin chat found. Please request a chat from the campus feed.</div>';
         return;
     }
+
     initChat();
 }
 start();
