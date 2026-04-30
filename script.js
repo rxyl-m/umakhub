@@ -1062,6 +1062,7 @@ async function initMemberPage() {
     }
     updateChatLinkVisibility(user);
     startRealtimeNotifications(user, false);
+    setupNotifBell();
 
     const nameEl   = document.getElementById("memberName");
     const avatarEl = document.getElementById("memberAvatar");
@@ -1566,13 +1567,6 @@ async function renderAdminDashboard() {
                 }).join("")
                 : emptyState("No live posts yet.");
         }    
-        const bell  = document.getElementById("notificationBell");
-        const modal = document.getElementById("requestModal");
-        if (bell && modal) {
-            bell.onclick = () => openRequestModal(pendingReq, pendingChats, modal, requests);
-            document.getElementById("closeModal").onclick = () => closeModal(modal);
-            modal.querySelector(".modal-backdrop").onclick = () => closeModal(modal);
-        }
 
         const searchEl = document.getElementById("adminSearch");
         if (searchEl) {
@@ -2712,6 +2706,10 @@ function startRealtimeNotifications(user, isAdmin) {
     }
 
         supabaseClient.channel('member-global-notifs')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_email=eq.${user.email}` }, payload => {
+                showToast(payload.new.text, payload.new.type === 'error' ? 'error' : 'info');
+                fetchAndRenderNotifications();
+            })
             // 1. Item post request approved / rejected
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'requests' }, payload => {
                 if (payload.new.requested_by === user.email && payload.new.status !== 'pending') {
