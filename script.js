@@ -998,15 +998,6 @@ function initLogin() {
                 }
             });
 
-            // 2. IMPORTANT: Manually insert into your public 'users' table
-            const { error: dbError } = await supabaseClient.from('users').insert([{
-                email: email.toLowerCase(),
-                name: `${firstName} ${lastName}`,
-                role: "member"
-            }]);
-
-            if (dbError) throw dbError;
-
             // FIX: Only call this ONCE. Remove the second redundant line.
             showMsg(succEl, "Account created! Please check your UMak email to verify before signing in.", "success");
             
