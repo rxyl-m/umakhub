@@ -998,6 +998,13 @@ function initLogin() {
                 }
             });
 
+            if (error) {
+                showMsg(errEl, error.message, "error");
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = "<i class='ph ph-user-plus'></i> Create Account";
+                return; // Stops the code from redirecting to login!
+            }
+
             // FIX: Only call this ONCE. Remove the second redundant line.
             showMsg(succEl, "Account created! Please check your UMak email to verify before signing in.", "success");
             
