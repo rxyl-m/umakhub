@@ -156,10 +156,16 @@ async function markAllNotificationsRead() {
 }
 
 async function dbAddNotification(userEmail, text, type = 'info') {
-    if (!userEmail) return;
-    await supabaseClient.from('notifications').insert([{ user_email: userEmail, text: text, type: type }]);
+    if (!userEmail || !userEmail.includes('@')) {
+        console.error("Debugger Warning: Attempted to add notification to a non-email address:", userEmail);
+        return; 
+    }
+    await supabaseClient.from('notifications').insert([{ 
+        user_email: userEmail.toLowerCase(), 
+        text: text, 
+        type: type 
+    }]);
 }
-
 function setupNotifBell() {
     const bell = document.getElementById('notificationBell');
     if (!bell) return;
@@ -2202,7 +2208,7 @@ function initAdminRequestForm() {
                     location: "UMak Campus", 
                     date: new Date().toLocaleDateString(), 
                     contact: user.name, 
-                    ownerEmail: user.email, // <-- ADD THIS LINE
+                    ownerEmail: user.email,
                     imageUrl: imageUrl 
                 });
 
