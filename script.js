@@ -1542,7 +1542,7 @@ async function renderAdminDashboard() {
     const approvedEl = document.getElementById("approvedItems");
     if (pendingEl)  pendingEl.innerHTML  = loadingState("Loading requests…");
     if (approvedEl) approvedEl.innerHTML = loadingState("Loading posts…");
-
+    
     try {
         // Removed dbGetClaims()
         const [items, requests, users, chatReqs] = await Promise.all([
@@ -2762,6 +2762,24 @@ function startRealtimeNotifications(user, isAdmin) {
             })
             .subscribe();
     }
+supabaseClient.channel('admin-chat-notifs')
+    .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'conversations' 
+    }, payload => {
+        // 1. Show a toast notification to the admin immediately
+        showToast(`New Chat Request: ${payload.new.member_name}`, "info");
+
+        // 2. Refresh the dashboard stats so the "Chat Requests" count updates
+        if (typeof renderAdminDashboard === "function") {
+            renderAdminDashboard();
+        }
+
+        // 3. Optional: Trigger a browser notification sound
+        // new Audio('notify.mp3').play().catch(e => {});
+    })
+    .subscribe();
 }
 
 function toggleMoreComments(itemId) {
